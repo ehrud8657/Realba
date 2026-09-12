@@ -29,7 +29,7 @@ import {
   DEFAULT_ORIGIN_LABEL,
   FALLBACK_ORIGINS,
   findFallbackOrigin,
-  geocode,
+  geocodeDetailed,
 } from '@/lib/geocode';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
 import {
@@ -196,13 +196,14 @@ async function resolveOrigin(
     };
   }
 
-  // 카카오 키가 없어도 OSM으로 찾아봅니다 (→ lib/geocode.ts)
-  const found = await geocode(query);
+  // 카카오 키가 없어도 지도에서 찾습니다. 번지·상세주소가 붙으면 한 단계씩 줄여가며 재시도합니다
+  const found = await geocodeDetailed(query);
   if (found) {
     return {
-      location: found,
+      location: found.location,
       resolved: true,
-      outOfArea: haversineKm(found, SEOUL_CENTER) > SERVICE_RADIUS_KM,
+      ...(found.exact ? {} : { usedLabel: found.matchedQuery }),
+      outOfArea: haversineKm(found.location, SEOUL_CENTER) > SERVICE_RADIUS_KM,
     };
   }
 

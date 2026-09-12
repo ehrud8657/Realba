@@ -102,6 +102,68 @@ export async function geocode(query: string): Promise<LatLng | null> {
   return result;
 }
 
+
+/* ── 주소 단계적 축약 ─────────────────────────────────────────────
+   "서울 관악구 봉천동 1610-1 3층"처럼 상세주소나 번지가 붙으면 지도 검색이 실패합니다.
+   그래서 실패할 때마다 한 단계씩 줄여가며 다시 찾습니다.
+     ① 원문 그대로
+     ② 상세주소 제거      (3층 / 101동 202호 / (2층) / B1)
+     ③ 번지 제거          → 동 단위
+     ④ 구 단위
+   ②~④에서 찾으면 "어디 기준으로 계산했는지"를 화면에 알려줍니다. */
+
+/** 찾기 위해 시도할 질의들을 넓은 순서로 만듭니다 */
+export function addressVariants(query: string): string[] {
+  const cleaned = query.replace(/\s+/g, ' ').trim();
+  const out: string[] = [cleaned];
+
+  const push = (v: string) => {
+    const t = v.replace(/\s+/g, ' ').trim();
+    if (t.length >= 2 && !out.includes(t)) out.push(t);
+  };
+
+  // 서울을 안 적었으면 서울 기준으로도 찾아봅니다
+  if (!/서울/.test(cleaned)) push(`서울 ${cleaned}`);
+
+  // ② 상세주소 제거
+  const noDetail = cleaned
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/\s(지하\s*)?\d+\s*(층|호)(?=\s|$)/g, ' ')
+    .replace(/\s\d+\s*동(?=\s|$)/g, ' ') // 101동 (아파트 동). "서교동" 같은 법정동은 숫자가 앞에 없어 안 걸립니다
+    .replace(/\sB\d+(?=\s|$)/gi, ' ');
+  push(noDetail);
+
+  // ③ 번지 제거 → 동 단위
+  const noBunji = noDetail.replace(/\s\d+(-\d+)?\s*$/, '');
+  push(noBunji);
+
+  // ④ 구 단위
+  const gu = cleaned.match(/([가-힣]+구)/);
+  if (gu) push(`서울 ${gu[1]}`);
+
+  return out.slice(0, 5);
+}
+
+/** 어디를 기준으로 계산했는지까지 알려주는 지오코딩 */
+export interface GeocodeHit {
+  location: LatLng;
+  /** 실제로 찾아낸 질의. 원문과 다르면 화면에 알려줍니다 */
+  matchedQuery: string;
+  /** 원문 그대로 찾았는지 */
+  exact: boolean;
+}
+
+export async function geocodeDetailed(query: string): Promise<GeocodeHit | null> {
+  const variants = addressVariants(query);
+
+  for (let i = 0; i < variants.length; i++) {
+    const v = variants[i];
+    const location = await geocode(v);
+    if (location) return { location, matchedQuery: v, exact: i === 0 };
+  }
+  return null;
+}
+
 async function search(kind: 'address' | 'keyword', query: string): Promise<LatLng | null> {
   try {
     const url = `https://dapi.kakao.com/v2/local/search/${kind}.json?query=${encodeURIComponent(query)}`;
