@@ -1,8 +1,7 @@
 /**
  * 하단 탭바 (Figma 시안 '하단바')
  *
- * 기존 Plus 아이콘은 간편 실질시급 계산기로 연결합니다.
- * 마이페이지는 아직 준비 중입니다.
+ * Plus는 간편 실질시급 계산기로, My Page는 마이페이지로 연결합니다.
  */
 
 'use client';
@@ -57,9 +56,10 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: '#',
+    href: '/me',
     label: 'My Page',
-    ready: false,
+    ready: true,
+    match: (p) => p.startsWith('/me'),
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
         <circle cx="12" cy="8.5" r="3.5" />
