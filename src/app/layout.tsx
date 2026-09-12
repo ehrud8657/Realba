@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import PwaRegister from '@/components/PwaRegister';
+import BottomNav from '@/components/BottomNav';
+import Splash from '@/components/Splash';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#1B64DA', // 폰 상단 상태바 색
+  themeColor: '#2563EB', // 폰 상단 상태바 색 (Figma 시안의 브랜드 블루)
   width: 'device-width',
   initialScale: 1,
   // maximumScale은 두지 않습니다 — 확대를 막으면 숫자를 키워 봐야 하는 사용자가 막힙니다
@@ -31,7 +33,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body className="bg-gray-50 text-gray-900 antialiased">
-        <div className="mx-auto min-h-screen max-w-md bg-white shadow-sm">
+        <div className="mx-auto min-h-screen max-w-md bg-white pb-20 shadow-sm">
+          <Splash />
           {children}
           {/* README §10 — 실질시급은 참고용 지표라는 고지 */}
           <footer className="border-t border-gray-100 px-5 py-5 text-[11px] leading-relaxed text-gray-400">
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             이동시간과 요금은 평시 기준 추정치이고, 공고 원문은 각 출처에서 확인하세요.
           </footer>
         </div>
+        <BottomNav />
         <PwaRegister />
       </body>
     </html>

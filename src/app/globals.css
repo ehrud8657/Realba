@@ -1,3 +1,6 @@
+/* 한국어 UI 기본 폰트 — 시안의 글자 인상을 맞추기 위해 씁니다 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,9 +11,16 @@
 
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic',
-    'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* 시안의 워드마크 — 줄바꿈된 'Rea:' / 'A:ba' */
+.wordmark {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
 /* 숫자를 세로로 정렬해서 보기 좋게 */

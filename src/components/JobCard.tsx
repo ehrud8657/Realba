@@ -1,8 +1,14 @@
 /**
- * 검색 결과 카드
+ * 검색 결과 카드 (Figma 시안의 결과 리스트 카드)
  * 소유자: B (프론트 — 검색)
  *
- * 3단 구성이 핵심입니다 — 표시 시급(회색·취소선) → 실질시급(크게) → 손실률 배지
+ * 시안 구성
+ *   1위  [사장님 공고]
+ *   편의점 야간 근무
+ *   ○○편의점 신촌점 · 서울 서대문구 창천동
+ *   시급 13,000원
+ *   실질 11,741원  −9.7%
+ *   🚇 편도 20분 · 💸 왕복 1,560원 · ⏱ 6시간
  */
 
 import Link from 'next/link';
@@ -26,31 +32,31 @@ export default function JobCard({ item, rank, query }: Props) {
   return (
     <Link
       href={`/jobs/${job.id}?${query}`}
-      className="block rounded-xl border border-gray-200 p-4 transition hover:border-gray-400"
+      className="block rounded-card border border-line p-4 transition active:border-ink-soft"
     >
-      <div className="mb-2 flex items-center gap-2">
-        <span className="text-xs font-bold text-gray-400 tnum">{rank}위</span>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <span className="text-[13px] font-bold text-ink tnum">{rank}위</span>
         <SourceBadge source={job.source} />
       </div>
 
-      <div className="font-semibold leading-snug">{job.title}</div>
-      <div className="mt-0.5 text-xs text-gray-500">
+      <div className="text-[15px] font-bold leading-snug text-ink">{job.title}</div>
+      <div className="mt-0.5 text-[12px] text-ink-soft">
         {job.companyName} · {job.address}
       </div>
 
-      <div className="mt-3">
+      <div className="mt-2.5">
         {calc ? (
           <RealWageBadge calc={calc} />
         ) : (
           <div>
-            <div className="text-sm text-gray-400 line-through tnum">시급 {won(job.hourlyWage)}</div>
-            <div className="text-sm text-bad">경로를 찾지 못했어요 — 실질시급 계산 불가</div>
+            <div className="text-[13px] text-ink-soft tnum">시급 {won(job.hourlyWage)}</div>
+            <div className="text-[13px] text-bad">경로를 찾지 못했어요 — 실질시급 계산 불가</div>
             {isBelowMinimumWage(job.hourlyWage) && <MinimumWageWarning wageBelowMinimum />}
           </div>
         )}
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 tnum">
+      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-ink-soft tnum">
         {route && (
           <>
             <span>🚇 편도 {minutes(route.oneWayMinutes)}</span>

@@ -10,7 +10,7 @@ export default function SourceBadge({ source }: { source: JobSource }) {
   return (
     <span
       className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-        owner ? 'border-brand text-brand' : 'border-gray-300 text-gray-500'
+        owner ? 'border-brand text-brand' : 'border-line text-ink-soft'
       }`}
     >
       {owner ? '사장님공고' : '사람인'}

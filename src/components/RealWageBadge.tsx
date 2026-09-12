@@ -1,17 +1,18 @@
 /**
- * 실질시급 + 손실률 배지 (+ 최저임금 경고)
+ * 실질시급 + 손실률 (+ 최저임금 경고)  — Figma 시안의 카드 중앙부
  * 소유자: B (프론트 — 검색)
+ *
+ * 시안 구성:  시급 13,000원(회색)  /  실질 11,741원(굵게) + −9.7%(빨강)
  *
  * 접근성(docs/WIREFRAME.md §5): 색으로만 구분하지 않고 부호·퍼센트를 항상 글자로 병기하고,
  * 숫자 덩어리에는 aria-label로 한 문장을 붙입니다.
  */
 
 import type { Calc } from '@/types';
-import { LOSS_STYLE, lossLevel, percent, won } from '@/lib/format';
+import { percent, won } from '@/lib/format';
 import { isBelowMinimumWage, minimumWage } from '@/lib/minimumWage';
 
 export default function RealWageBadge({ calc }: { calc: Calc }) {
-  const level = lossLevel(calc.lossRate);
   const loss = calc.lossRate >= 0;
   const sign = loss ? '−' : '+';
 
@@ -24,21 +25,19 @@ export default function RealWageBadge({ calc }: { calc: Calc }) {
 
   return (
     <div>
-      <div className="text-sm text-gray-400 line-through tnum">
-        시급 {won(calc.nominalHourlyWage)}
-      </div>
-      <div className="mt-0.5 flex flex-wrap items-baseline gap-2" aria-label={ariaLabel}>
-        <span className="text-2xl font-bold tnum">실질 {won(calc.realHourlyWage)}</span>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-xs font-semibold tnum ${LOSS_STYLE[level]}`}
-        >
+      <div className="text-[13px] text-ink-soft tnum">시급 {won(calc.nominalHourlyWage)}</div>
+      <div className="mt-0.5 flex flex-wrap items-baseline gap-1.5" aria-label={ariaLabel}>
+        <span className="text-[17px] font-bold text-ink tnum">
+          실질 {won(calc.realHourlyWage)}
+        </span>
+        <span className={`text-[13px] font-bold tnum ${loss ? 'text-bad' : 'text-good'}`}>
           {sign}
           {percent(Math.abs(calc.lossRate))}
         </span>
       </div>
 
       {calc.includesWeeklyHolidayPay && (
-        <div className="mt-1 text-[11px] text-gray-500 tnum">
+        <div className="mt-1 text-[11px] text-ink-soft tnum">
           주휴수당 {won(calc.dailyHolidayPay)}/일 포함
         </div>
       )}

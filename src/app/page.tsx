@@ -1,5 +1,5 @@
 /**
- * S-01 홈 / 검색
+ * S-01 홈 / 검색 (Figma 시안 '메인')
  * 소유자: B (프론트 — 검색)
  */
 
@@ -10,6 +10,7 @@ import { useState } from 'react';
 import type { TransportMode } from '@/types';
 import PlaceAutocomplete, { saveRecentOrigin } from '@/components/PlaceAutocomplete';
 import WorkHoursSlider from '@/components/WorkHoursSlider';
+import { Wordmark } from '@/components/Logo';
 
 const MODES: [TransportMode, string][] = [
   ['TRANSIT', '대중교통'],
@@ -34,25 +35,23 @@ export default function HomePage() {
   }
 
   return (
-    <main className="px-5 pb-16 pt-8">
-      <h1 className="text-lg font-bold">리알바</h1>
+    <main className="px-5 pb-10 pt-10">
+      <Wordmark className="text-right text-[32px]" />
 
-      <div className="mt-6">
-        <p className="text-2xl font-bold leading-snug">
-          시급 12,000원 알바,
+      <div className="mt-8">
+        <h1 className="text-[22px] font-bold leading-snug text-ink">당신의 시급, 진짜일까요?</h1>
+        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+          리알바가 교통비와 출퇴근 시간을 포함한
           <br />
-          진짜로는 9,276원입니다.
-        </p>
-        <p className="mt-2 text-sm text-gray-500">
-          교통비와 출퇴근 시간까지 계산해 드릴게요.
+          진짜 시급을 알려드릴게요.
         </p>
       </div>
 
-      <div className="mt-8 space-y-4">
+      <div className="mt-7 space-y-5">
         <PlaceAutocomplete value={origin} onChange={setOrigin} onSubmit={search} />
 
         <div>
-          <label className="mb-1.5 block text-xs font-semibold text-gray-700">🚗 이동수단</label>
+          <label className="mb-2 block text-[13px] font-semibold text-ink">🚗 이동수단</label>
           <div className="grid grid-cols-3 gap-2">
             {MODES.map(([value, label]) => (
               <button
@@ -60,10 +59,10 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setMode(value)}
                 aria-pressed={mode === value}
-                className={`rounded-lg border px-2 py-2 text-xs font-semibold ${
+                className={`rounded-lg border px-2 py-2.5 text-[13px] font-semibold transition ${
                   mode === value
                     ? 'border-brand bg-blue-50 text-brand'
-                    : 'border-gray-300 text-gray-500'
+                    : 'border-line text-ink-soft'
                 }`}
               >
                 {label}
@@ -73,7 +72,7 @@ export default function HomePage() {
         </div>
 
         <div>
-          <label htmlFor="keyword-input" className="mb-1.5 block text-xs font-semibold text-gray-700">
+          <label htmlFor="keyword-input" className="mb-2 block text-[13px] font-semibold text-ink">
             🔍 어떤 알바를 찾으세요?
           </label>
           <input
@@ -82,14 +81,14 @@ export default function HomePage() {
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
             placeholder="카페, 편의점, 물류 … (비워두면 전체)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-line px-3.5 py-3 text-sm outline-none placeholder:text-gray-400 focus:border-brand"
           />
         </div>
 
         <WorkHoursSlider
           value={hours}
           onChange={setHours}
-          label="⏱ 하루 근무시간"
+          label="⏱ 희망 근무 시간"
           hint="사람인 공고는 근무시간을 제공하지 않아, 이 값으로 계산합니다."
         />
       </div>
@@ -97,12 +96,12 @@ export default function HomePage() {
       <button
         onClick={search}
         disabled={!canSearch}
-        className="mt-8 w-full rounded-lg bg-gray-900 py-3.5 text-sm font-bold text-white disabled:bg-gray-300"
+        className="mt-8 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white transition active:bg-brand-deep disabled:bg-gray-300"
       >
         실질시급으로 찾기 →
       </button>
       {!canSearch && (
-        <p className="mt-2 text-center text-[11px] text-gray-400">
+        <p className="mt-2 text-center text-[11px] text-ink-soft">
           출발지를 입력해야 이동시간과 교통비를 계산할 수 있어요.
         </p>
       )}
