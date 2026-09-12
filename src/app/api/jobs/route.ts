@@ -1,14 +1,19 @@
 /**
- * GET /api/jobs — 이 프로젝트의 유일한 API
+ * GET /api/jobs — 이 프로젝트의 유일한 공고 API
  *
  * 소유자: A (백엔드)
  * B, C는 이 파일을 건드리지 말고 응답(JobsResponse)만 쓰세요.
  *
  * 쿼리 파라미터
- *   origin   출발지 (예: "신촌역")
- *   keyword  검색어 (예: "카페")  — 비워도 됨
- *   hours    하루 근무시간 (기본 5)
- *   sort     REAL_WAGE | NOMINAL_WAGE | COMMUTE
+ *   origin     출발지 (예: "신촌역")
+ *   keyword    검색어 (예: "카페")  — 비워도 됨
+ *   hours      하루 근무시간 (기본 5)
+ *   mode       TRANSIT | TAXI | CAR
+ *   sort       REAL_WAGE | NOMINAL_WAGE | COMMUTE | LOSS_RATE | RECENT
+ *   limit      최대 건수 (기본 10) — '더 보기'를 누르면 10씩 늘려서 다시 부릅니다
+ *   ownerOnly  1이면 사장님 공고만
+ *   minWage    1이면 최저임금 이상 공고만
+ *   id         공고 ID 한 건만 (상세 화면 전용. 목록 상한과 무관하게 항상 찾아냅니다)
  *
  * ★ 핵심 설계: 외부 API 키가 없어도 목데이터로 정상 동작합니다.
  *   덕분에 B와 C는 A를 기다리지 않고, 키가 안 나와도 데모가 살아남습니다.
@@ -20,8 +25,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Job, JobResult, JobsResponse, LatLng, Route, SortKey, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
-import { FALLBACK_ORIGINS, geocode, hasGeocodeKey } from '@/lib/geocode';
-import { estimateRoute, getRoute, hasOdsayKey } from '@/lib/odsay';
+import { DEFAULT_ORIGIN_LABEL, FALLBACK_ORIGINS, geocode, hasGeocodeKey } from '@/lib/geocode';
+import { isBelowMinimumWage } from '@/lib/minimumWage';
+import { estimateRoute, getRoute, hasOdsayKey, haversineKm } from '@/lib/odsay';
 import { fetchSaraminJobs, hasSaraminKey } from '@/lib/saramin';
 
 import mockJobsRaw from '@/data/mockJobs.json';
@@ -35,16 +41,37 @@ type SeedJob = Job & {
 const MOCK_JOBS = mockJobsRaw as unknown as SeedJob[];
 const OWNER_JOBS = ownerJobsRaw as unknown as SeedJob[];
 
+const DEFAULT_LIMIT = 10;
+
+/**
+ * 목데이터의 mockRoute는 "신촌역에서 출발했을 때" 기준으로 손으로 넣어둔 값입니다.
+ * 그래서 출발지가 신촌역 근처일 때만 쓰고, 멀어지면 좌표 기반 추정으로 바꿉니다.
+ * (이걸 안 하면 노원역에서 검색해도 신촌 김밥집이 7분으로 나와 항상 1위가 됩니다)
+ */
+const MOCK_ROUTE_BASE_ORIGIN = FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL];
+const MOCK_ROUTE_VALID_RADIUS_KM = 1.5;
+
+function baseRoute(origin: LatLng, job: SeedJob): Route {
+  const nearBaseOrigin =
+    haversineKm(origin, MOCK_ROUTE_BASE_ORIGIN) <= MOCK_ROUTE_VALID_RADIUS_KM;
+  if (job.mockRoute && nearBaseOrigin) return job.mockRoute;
+  return estimateRoute(origin, job.location);
+}
+
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
-  const originQuery = sp.get('origin')?.trim() || '신촌역';
+  const originQuery = sp.get('origin')?.trim() || DEFAULT_ORIGIN_LABEL;
   const keyword = sp.get('keyword')?.trim() || '';
   const hours = clamp(Number(sp.get('hours')) || 5, 1, 14);
   const sort = (sp.get('sort') as SortKey) || 'REAL_WAGE';
   const mode = (sp.get('mode') as TransportMode) || 'TRANSIT';
+  const limit = clamp(Number(sp.get('limit')) || DEFAULT_LIMIT, 1, 60);
+  const ownerOnly = sp.get('ownerOnly') === '1';
+  const aboveMinimumWage = sp.get('minWage') === '1';
+  const id = sp.get('id')?.trim() || '';
 
   // ── 1. 출발지 좌표 ────────────────────────────────
-  const originLocation = await resolveOrigin(originQuery);
+  const origin = await resolveOrigin(originQuery);
 
   // ── 2. 공고 모으기 (사장님 공고 + 사람인) ──────────
   const live = hasSaraminKey();
@@ -66,13 +93,27 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // 상세 화면은 ID로 한 건만 찾습니다. 목록 필터·상한을 적용하면 안 됩니다
+  if (id) {
+    jobs = jobs.filter((j) => j.id === id);
+  } else {
+    if (ownerOnly) jobs = jobs.filter((j) => j.source === 'OWNER');
+    if (aboveMinimumWage) jobs = jobs.filter((j) => !isBelowMinimumWage(j.hourlyWage));
+  }
+
   // 사람인 공고는 근무시간을 모르므로 사용자가 지정한 값으로 덮어씁니다
   jobs = jobs.map((j) => (j.hoursIsEstimated ? { ...j, dailyWorkHours: hours } : j));
 
+  const total = jobs.length;
+
   // ── 3. 경로 + 실질시급 계산 ───────────────────────
+  // 목데이터는 경로가 로컬이라 전부 계산해도 공짜지만, LIMIT 모드에서는 공고 1건당
+  // ODsay를 1번 부릅니다. 그래서 LIVE일 때만 limit까지만 계산합니다 (→ TEAM.md §5 쿼터 주의)
+  const candidates = live && !id ? jobs.slice(0, limit) : jobs;
+
   const items: JobResult[] = await Promise.all(
-    jobs.map(async (job) => {
-      const route = await resolveRoute(originLocation, job, mode);
+    candidates.map(async (job) => {
+      const route = await resolveRoute(origin.location, job, mode);
       const { mockRoute, ...cleanJob } = job;
       return { job: cleanJob, route, calc: calcForJob(cleanJob, route) };
     }),
@@ -90,36 +131,58 @@ export async function GET(req: NextRequest) {
         return b.calc.nominalHourlyWage - a.calc.nominalHourlyWage;
       case 'COMMUTE':
         return (a.route?.oneWayMinutes ?? 999) - (b.route?.oneWayMinutes ?? 999);
+      case 'LOSS_RATE':
+        return a.calc.lossRate - b.calc.lossRate;
+      case 'RECENT':
+        return (b.job.postedAt ?? '').localeCompare(a.job.postedAt ?? '');
       case 'REAL_WAGE':
       default:
         return b.calc.realHourlyWage - a.calc.realHourlyWage;
     }
   });
 
+  const page = id ? items : items.slice(0, limit);
+
   const body: JobsResponse = {
     mode: live ? 'live' : 'mock',
-    origin: { label: originQuery, location: originLocation },
-    total: items.length,
-    items,
+    origin: {
+      label: originQuery,
+      location: origin.location,
+      resolved: origin.resolved,
+      ...(origin.resolved ? {} : { usedLabel: DEFAULT_ORIGIN_LABEL }),
+    },
+    total,
+    limit,
+    hasMore: total > page.length,
+    items: page,
   };
 
   return NextResponse.json(body, { headers: { 'Cache-Control': 'no-store' } });
 }
 
-/** 출발지 문자열 → 좌표. 카카오 키가 없으면 고정 목록에서 찾고, 그래도 없으면 신촌역 */
-async function resolveOrigin(query: string): Promise<LatLng> {
-  if (FALLBACK_ORIGINS[query]) return FALLBACK_ORIGINS[query];
+/**
+ * 출발지 문자열 → 좌표.
+ * 못 찾으면 기본 출발지로 계산하되 resolved=false를 함께 돌려줍니다.
+ * (화면이 "입력한 곳을 못 찾아 신촌역 기준으로 계산했다"고 알려줄 수 있게)
+ */
+async function resolveOrigin(query: string): Promise<{ location: LatLng; resolved: boolean }> {
+  if (FALLBACK_ORIGINS[query]) return { location: FALLBACK_ORIGINS[query], resolved: true };
+
   if (hasGeocodeKey()) {
     const found = await geocode(query);
-    if (found) return found;
+    if (found) return { location: found, resolved: true };
   }
-  return FALLBACK_ORIGINS['신촌역'];
+
+  return {
+    location: FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL],
+    resolved: query === DEFAULT_ORIGIN_LABEL,
+  };
 }
 
 /** 경로 구하기: ODsay → 목데이터 → 직선거리 추정 순으로 시도 */
 async function resolveRoute(origin: LatLng, job: SeedJob, mode: TransportMode): Promise<Route | null> {
   if (mode !== 'TRANSIT') {
-    const base = job.mockRoute ?? estimateRoute(origin, job.location);
+    const base = baseRoute(origin, job);
     const factor = mode === 'TAXI' ? 0.65 : 0.8;
     const fare = mode === 'TAXI' ? Math.max(4800, Math.round(base.oneWayFare * 4)) : Math.max(0, Math.round(base.oneWayFare * 1.5));
     return { ...base, oneWayMinutes: Math.max(1, Math.round(base.oneWayMinutes * factor)), oneWayFare: fare, mode };
@@ -128,8 +191,7 @@ async function resolveRoute(origin: LatLng, job: SeedJob, mode: TransportMode): 
     const real = await getRoute(origin, job.location);
     if (real) return { ...real, mode };
   }
-  if (job.mockRoute) return { ...job.mockRoute, mode };
-  return { ...estimateRoute(origin, job.location), mode };
+  return { ...baseRoute(origin, job), mode };
 }
 
 function clamp(n: number, min: number, max: number) {

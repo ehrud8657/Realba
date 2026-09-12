@@ -5,12 +5,21 @@
     "title": "물류센터 상하차 아르바이트",
     "companyName": "○○물류",
     "address": "경기 고양시 덕양구",
-    "location": { "lat": 37.6371, "lng": 126.8324 },
+    "location": {
+      "lat": 37.6371,
+      "lng": 126.8324
+    },
     "hourlyWage": 12000,
     "dailyWorkHours": 5,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 35, "oneWayFare": 1400 }
+    "mockRoute": {
+      "oneWayMinutes": 35,
+      "oneWayFare": 1400
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-11",
+    "deadline": "2026-09-19"
   },
   {
     "id": "s2",
@@ -18,12 +27,21 @@
     "title": "대형마트 상품 진열",
     "companyName": "△△마트 화곡점",
     "address": "서울 강서구 화곡동",
-    "location": { "lat": 37.541, "lng": 126.8395 },
+    "location": {
+      "lat": 37.541,
+      "lng": 126.8395
+    },
     "hourlyWage": 11000,
     "dailyWorkHours": 4,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 22, "oneWayFare": 1100 }
+    "mockRoute": {
+      "oneWayMinutes": 22,
+      "oneWayFare": 1100
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-10",
+    "deadline": "2026-09-22"
   },
   {
     "id": "s3",
@@ -31,12 +49,21 @@
     "title": "편의점 야간 근무",
     "companyName": "○○편의점 신촌점",
     "address": "서울 서대문구 창천동",
-    "location": { "lat": 37.5567, "lng": 126.9385 },
+    "location": {
+      "lat": 37.5567,
+      "lng": 126.9385
+    },
     "hourlyWage": 13000,
     "dailyWorkHours": 8,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 12, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 12,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-09",
+    "deadline": "2026-09-25"
   },
   {
     "id": "s4",
@@ -44,12 +71,21 @@
     "title": "학원 데스크 보조 (단시간 고시급)",
     "companyName": "□□학원 대치점",
     "address": "서울 강남구 대치동",
-    "location": { "lat": 37.4979, "lng": 127.0276 },
+    "location": {
+      "lat": 37.4979,
+      "lng": 127.0276
+    },
     "hourlyWage": 15000,
     "dailyWorkHours": 3,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 50, "oneWayFare": 1800 }
+    "mockRoute": {
+      "oneWayMinutes": 50,
+      "oneWayFare": 1800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-08",
+    "deadline": "2026-09-28"
   },
   {
     "id": "s5",
@@ -57,12 +93,21 @@
     "title": "카페 홀 서빙",
     "companyName": "커피○○ 홍대점",
     "address": "서울 마포구 서교동",
-    "location": { "lat": 37.5563, "lng": 126.9236 },
+    "location": {
+      "lat": 37.5563,
+      "lng": 126.9236
+    },
     "hourlyWage": 10500,
     "dailyWorkHours": 5,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 15, "oneWayFare": 1000 }
+    "mockRoute": {
+      "oneWayMinutes": 15,
+      "oneWayFare": 1000
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-07",
+    "deadline": "2026-10-01"
   },
   {
     "id": "s6",
@@ -70,12 +115,21 @@
     "title": "베이커리 판매 및 진열",
     "companyName": "◇◇베이커리",
     "address": "경기 부천시 원미구",
-    "location": { "lat": 37.5035, "lng": 126.766 },
+    "location": {
+      "lat": 37.5035,
+      "lng": 126.766
+    },
     "hourlyWage": 11500,
     "dailyWorkHours": 5,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 40, "oneWayFare": 1500 }
+    "mockRoute": {
+      "oneWayMinutes": 40,
+      "oneWayFare": 1500
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-06",
+    "deadline": "2026-10-04"
   },
   {
     "id": "s7",
@@ -83,12 +137,21 @@
     "title": "주유소 주유원",
     "companyName": "○○주유소 은평점",
     "address": "서울 은평구 불광동",
-    "location": { "lat": 37.6027, "lng": 126.9291 },
+    "location": {
+      "lat": 37.6027,
+      "lng": 126.9291
+    },
     "hourlyWage": 10800,
     "dailyWorkHours": 6,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 25, "oneWayFare": 1300 }
+    "mockRoute": {
+      "oneWayMinutes": 25,
+      "oneWayFare": 1300
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-05",
+    "deadline": "2026-10-07"
   },
   {
     "id": "s8",
@@ -96,12 +159,21 @@
     "title": "물류 피킹·포장",
     "companyName": "☆☆로지스",
     "address": "인천 서구 가좌동",
-    "location": { "lat": 37.5454, "lng": 126.6758 },
+    "location": {
+      "lat": 37.5454,
+      "lng": 126.6758
+    },
     "hourlyWage": 12500,
     "dailyWorkHours": 8,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 55, "oneWayFare": 2100 }
+    "mockRoute": {
+      "oneWayMinutes": 55,
+      "oneWayFare": 2100
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-04",
+    "deadline": "2026-09-19"
   },
   {
     "id": "s9",
@@ -109,12 +181,21 @@
     "title": "구립도서관 자료 정리",
     "companyName": "▽▽구립도서관",
     "address": "서울 서대문구 홍은동",
-    "location": { "lat": 37.5791, "lng": 126.9368 },
+    "location": {
+      "lat": 37.5791,
+      "lng": 126.9368
+    },
     "hourlyWage": 10320,
     "dailyWorkHours": 4,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 8, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 8,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-03",
+    "deadline": "2026-09-22"
   },
   {
     "id": "s10",
@@ -122,12 +203,21 @@
     "title": "백화점 의류 판매",
     "companyName": "◎◎백화점 본점",
     "address": "서울 중구 소공동",
-    "location": { "lat": 37.5636, "lng": 126.982 },
+    "location": {
+      "lat": 37.5636,
+      "lng": 126.982
+    },
     "hourlyWage": 12500,
     "dailyWorkHours": 8,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 30, "oneWayFare": 1500 }
+    "mockRoute": {
+      "oneWayMinutes": 30,
+      "oneWayFare": 1500
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-02",
+    "deadline": "2026-09-25"
   },
   {
     "id": "s11",
@@ -135,12 +225,21 @@
     "title": "PC방 카운터 관리",
     "companyName": "◆◆PC방 신림점",
     "address": "서울 관악구 신림동",
-    "location": { "lat": 37.4784, "lng": 126.9516 },
+    "location": {
+      "lat": 37.4784,
+      "lng": 126.9516
+    },
     "hourlyWage": 11000,
     "dailyWorkHours": 6,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 45, "oneWayFare": 1600 }
+    "mockRoute": {
+      "oneWayMinutes": 45,
+      "oneWayFare": 1600
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-01",
+    "deadline": "2026-09-28"
   },
   {
     "id": "s12",
@@ -148,12 +247,21 @@
     "title": "영화관 상영관 스태프",
     "companyName": "○○시네마 용산점",
     "address": "서울 용산구 한강로동",
-    "location": { "lat": 37.5326, "lng": 126.9906 },
+    "location": {
+      "lat": 37.5326,
+      "lng": 126.9906
+    },
     "hourlyWage": 11200,
     "dailyWorkHours": 5,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 28, "oneWayFare": 1400 }
+    "mockRoute": {
+      "oneWayMinutes": 28,
+      "oneWayFare": 1400
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-08-31",
+    "deadline": "2026-10-01"
   },
   {
     "id": "s13",
@@ -161,12 +269,21 @@
     "title": "호텔 조식 서빙",
     "companyName": "☆호텔 명동",
     "address": "서울 중구 명동",
-    "location": { "lat": 37.56, "lng": 126.975 },
+    "location": {
+      "lat": 37.56,
+      "lng": 126.975
+    },
     "hourlyWage": 12000,
     "dailyWorkHours": 4,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 33, "oneWayFare": 1500 }
+    "mockRoute": {
+      "oneWayMinutes": 33,
+      "oneWayFare": 1500
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-11",
+    "deadline": "2026-10-04"
   },
   {
     "id": "s14",
@@ -174,12 +291,21 @@
     "title": "택배 분류 및 배송 보조",
     "companyName": "▣▣택배 김포터미널",
     "address": "경기 김포시 고촌읍",
-    "location": { "lat": 37.6152, "lng": 126.7156 },
+    "location": {
+      "lat": 37.6152,
+      "lng": 126.7156
+    },
     "hourlyWage": 13500,
     "dailyWorkHours": 7,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 60, "oneWayFare": 2300 }
+    "mockRoute": {
+      "oneWayMinutes": 60,
+      "oneWayFare": 2300
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-10",
+    "deadline": "2026-10-07"
   },
   {
     "id": "s15",
@@ -187,11 +313,20 @@
     "title": "스터디카페 시설 관리",
     "companyName": "■■스터디카페",
     "address": "서울 서대문구 대현동",
-    "location": { "lat": 37.5586, "lng": 126.94 },
+    "location": {
+      "lat": 37.5586,
+      "lng": 126.94
+    },
     "hourlyWage": 10300,
     "dailyWorkHours": 6,
     "hoursIsEstimated": true,
     "url": "https://www.saramin.co.kr/",
-    "mockRoute": { "oneWayMinutes": 10, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 10,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-09",
+    "deadline": "2026-09-19"
   }
 ]

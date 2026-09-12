@@ -89,7 +89,23 @@ async function toJob(raw: any, defaultHours: number): Promise<Job | null> {
     dailyWorkHours: estimated ?? defaultHours,
     hoursIsEstimated: true, // 사람인 공고는 항상 추정입니다
     url: raw?.url ?? null,
+    employmentType: raw?.position?.['job-type']?.name ?? '아르바이트',
+    postedAt: toDate(raw?.['posting-timestamp'] ?? raw?.['posting-date']),
+    deadline: toDate(raw?.['expiration-timestamp'] ?? raw?.['expiration-date']),
   };
+}
+
+/**
+ * 사람인은 날짜를 유닉스 초 또는 RFC 문자열로 줍니다. 둘 다 YYYY-MM-DD로 맞춥니다.
+ * 못 읽으면 undefined (그 줄을 화면에서 생략합니다)
+ */
+function toDate(value: unknown): string | undefined {
+  if (!value) return undefined;
+  const d =
+    typeof value === 'number' || /^\d+$/.test(String(value))
+      ? new Date(Number(value) * 1000)
+      : new Date(String(value));
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString().slice(0, 10);
 }
 
 /** "경기 > 고양시 덕양구" → "경기 고양시 덕양구" */
