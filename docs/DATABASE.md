@@ -1,4 +1,4 @@
-# DB 구조 — 진짜시급 (RealWage)
+# DB 구조 — 리알바 (RealBa)
 
 PostgreSQL 15 + PostGIS 3.4 기준.
 

@@ -1,4 +1,4 @@
-# 개발 가이드 — 진짜시급 (RealWage)
+# 개발 가이드 — 리알바 (RealBa)
 
 > ### ⚠️ 10시간 해커톤에 참여 중이라면
 > **이 문서는 "시간 제약 없이 제대로 만들 때"의 완성형 설계서입니다.**
@@ -668,8 +668,8 @@ describe('calcRealWage', () => {
 ### 11.3 최초 1회만 하는 세팅
 
 ```bash
-git clone https://github.com/ehrud8657/realwage.git
-cd realwage
+git clone https://github.com/ehrud8657/Realba.git
+cd Realba
 ```
 
 내 이름과 이메일을 등록합니다. (누가 뭘 했는지 기록에 남습니다)

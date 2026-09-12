@@ -122,8 +122,8 @@ Next.js 14 (App Router) + TypeScript + Tailwind CSS
 `create-next-app`을 새로 돌릴 필요 없습니다. **3명 모두 clone 받고 바로 시작하세요.**
 
 ```bash
-git clone https://github.com/ehrud8657/realwage.git
-cd realwage
+git clone https://github.com/ehrud8657/Realba.git
+cd Realba
 npm install
 npm run dev
 ```
@@ -453,7 +453,7 @@ export async function getRoute(o: LatLng, d: LatLng): Promise<Route | null> {
    저희가 사장님 공고 기능을 넣은 이유입니다."
 
 [2:45–3:00] 마무리
-  "시급이 아니라 실질시급으로 비교하는 알바 플랫폼, 진짜시급입니다."
+  "시급이 아니라 실질시급으로 비교하는 알바 플랫폼, 리알바입니다."
 ```
 
 ### 발표 준비 체크리스트

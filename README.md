@@ -101,8 +101,8 @@
 ## 5. 빠른 시작
 
 ```bash
-git clone https://github.com/ehrud8657/realwage.git
-cd realwage
+git clone https://github.com/ehrud8657/Realba.git
+cd Realba
 npm install
 npm run dev          # http://localhost:3000
 ```

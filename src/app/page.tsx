@@ -23,7 +23,7 @@ export default function HomePage() {
 
   return (
     <main className="px-5 pb-16 pt-8">
-      <h1 className="text-lg font-bold">진짜시급</h1>
+      <h1 className="text-lg font-bold">리알바</h1>
 
       <div className="mt-6">
         <p className="text-2xl font-bold leading-snug">
