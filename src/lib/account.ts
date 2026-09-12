@@ -140,6 +140,14 @@ export const EMPTY_STATE: AccountState = {
 /* ── 저장소 ──────────────────────────────────────────────── */
 
 let cache: Persisted | null = null;
+/**
+ * 화면에 넘겨줄 상태를 만들어 두고 재사용합니다.
+ *
+ * ★ useSyncExternalStore는 스냅샷을 === 로 비교합니다. 부를 때마다 새 객체를 만들면
+ *   React가 "계속 바뀐다"고 보고 무한 렌더에 빠집니다 (실제로 화면이 안 뜨는 사고가 났습니다).
+ *   그래서 저장이 일어날 때만 비우고, 그 외에는 같은 객체를 돌려줍니다.
+ */
+let viewCache: AccountState | null = null;
 const listeners = new Set<() => void>();
 
 function load(): Persisted {
@@ -171,6 +179,7 @@ function load(): Persisted {
 
 function save(next: Persisted) {
   cache = next;
+  viewCache = null;
   try {
     window.localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
@@ -203,11 +212,12 @@ function updateData(fn: (d: UserData) => UserData) {
 /** 화면이 쓰는 상태를 만들어 돌려줍니다 */
 export function readAccount(): AccountState {
   if (typeof window === 'undefined') return EMPTY_STATE;
+  if (viewCache) return viewCache;
 
   const p = load();
   const account = p.accounts.find((a) => a.userId === p.sessionUserId) ?? null;
 
-  return {
+  viewCache = {
     profile: account
       ? {
           userId: account.userId,
@@ -220,6 +230,7 @@ export function readAccount(): AccountState {
     rememberedUserId: p.rememberedUserId,
     accountCount: p.accounts.length,
   };
+  return viewCache;
 }
 
 /** useSyncExternalStore용 구독 */
@@ -229,6 +240,7 @@ export function subscribeAccount(listener: () => void) {
   const onStorage = (e: StorageEvent) => {
     if (e.key === KEY) {
       cache = null;
+      viewCache = null;
       listener();
     }
   };
