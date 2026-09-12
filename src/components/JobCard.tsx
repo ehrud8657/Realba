@@ -1,12 +1,17 @@
 /**
  * 검색 결과 카드
  * 소유자: B (프론트 — 검색)
+ *
+ * 3단 구성이 핵심입니다 — 표시 시급(회색·취소선) → 실질시급(크게) → 손실률 배지
  */
 
 import Link from 'next/link';
 import type { JobResult } from '@/types';
 import { minutes, won } from '@/lib/format';
-import RealWageBadge from './RealWageBadge';
+import { isBelowMinimumWage } from '@/lib/minimumWage';
+import RealWageBadge, { MinimumWageWarning } from './RealWageBadge';
+import SourceBadge from './SourceBadge';
+import EstimatedTag from './EstimatedTag';
 
 interface Props {
   item: JobResult;
@@ -25,15 +30,7 @@ export default function JobCard({ item, rank, query }: Props) {
     >
       <div className="mb-2 flex items-center gap-2">
         <span className="text-xs font-bold text-gray-400 tnum">{rank}위</span>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-            job.source === 'OWNER'
-              ? 'border-brand text-brand'
-              : 'border-gray-300 text-gray-500'
-          }`}
-        >
-          {job.source === 'OWNER' ? '사장님공고' : '사람인'}
-        </span>
+        <SourceBadge source={job.source} />
       </div>
 
       <div className="font-semibold leading-snug">{job.title}</div>
@@ -48,6 +45,7 @@ export default function JobCard({ item, rank, query }: Props) {
           <div>
             <div className="text-sm text-gray-400 line-through tnum">시급 {won(job.hourlyWage)}</div>
             <div className="text-sm text-bad">경로를 찾지 못했어요 — 실질시급 계산 불가</div>
+            {isBelowMinimumWage(job.hourlyWage) && <MinimumWageWarning wageBelowMinimum />}
           </div>
         )}
       </div>
@@ -61,12 +59,9 @@ export default function JobCard({ item, rank, query }: Props) {
           </>
         )}
         <span>
-          ⏱ {job.dailyWorkHours}시간
-          {job.hoursIsEstimated ? (
-            <span className="ml-1 rounded bg-gray-100 px-1 text-[10px] text-gray-500">추정</span>
-          ) : (
-            <span className="ml-1 rounded bg-blue-50 px-1 text-[10px] text-brand">확정</span>
-          )}
+          ⏱ {job.workTime ? `${job.workTime} ` : ''}
+          {job.dailyWorkHours}시간
+          <EstimatedTag estimated={job.hoursIsEstimated} />
         </span>
       </div>
     </Link>

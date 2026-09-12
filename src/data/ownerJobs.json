@@ -5,7 +5,10 @@
     "title": "연희동 로스터리 바리스타 (오전)",
     "companyName": "연희동 로스터리",
     "address": "서울 서대문구 연희동",
-    "location": { "lat": 37.57, "lng": 126.932 },
+    "location": {
+      "lat": 37.57,
+      "lng": 126.932
+    },
     "hourlyWage": 10500,
     "dailyWorkHours": 5,
     "hoursIsEstimated": false,
@@ -13,7 +16,13 @@
     "workTime": "09:00 ~ 14:00",
     "workDays": "월~금",
     "transportSubsidyPerDay": 0,
-    "mockRoute": { "oneWayMinutes": 10, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 10,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-12",
+    "deadline": "2026-09-22"
   },
   {
     "id": "o2",
@@ -21,7 +30,10 @@
     "title": "신촌 김밥집 홀·주방 보조",
     "companyName": "할머니김밥 신촌점",
     "address": "서울 서대문구 창천동",
-    "location": { "lat": 37.555, "lng": 126.938 },
+    "location": {
+      "lat": 37.555,
+      "lng": 126.938
+    },
     "hourlyWage": 11000,
     "dailyWorkHours": 4,
     "hoursIsEstimated": false,
@@ -29,7 +41,13 @@
     "workTime": "11:00 ~ 15:00",
     "workDays": "월·수·금",
     "transportSubsidyPerDay": 0,
-    "mockRoute": { "oneWayMinutes": 7, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 7,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-11",
+    "deadline": "2026-09-26"
   },
   {
     "id": "o3",
@@ -37,7 +55,10 @@
     "title": "홍대 편집숍 판매 스태프",
     "companyName": "스튜디오 하루",
     "address": "서울 마포구 서교동",
-    "location": { "lat": 37.554, "lng": 126.922 },
+    "location": {
+      "lat": 37.554,
+      "lng": 126.922
+    },
     "hourlyWage": 10800,
     "dailyWorkHours": 6,
     "hoursIsEstimated": false,
@@ -45,7 +66,13 @@
     "workTime": "13:00 ~ 19:00",
     "workDays": "토·일",
     "transportSubsidyPerDay": 0,
-    "mockRoute": { "oneWayMinutes": 18, "oneWayFare": 1000 }
+    "mockRoute": {
+      "oneWayMinutes": 18,
+      "oneWayFare": 1000
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-10",
+    "deadline": "2026-09-30"
   },
   {
     "id": "o4",
@@ -53,7 +80,10 @@
     "title": "이대 앞 무인카페 관리",
     "companyName": "무인카페 데일리",
     "address": "서울 서대문구 대현동",
-    "location": { "lat": 37.557, "lng": 126.946 },
+    "location": {
+      "lat": 37.557,
+      "lng": 126.946
+    },
     "hourlyWage": 10400,
     "dailyWorkHours": 3,
     "hoursIsEstimated": false,
@@ -61,7 +91,13 @@
     "workTime": "18:00 ~ 21:00",
     "workDays": "월~금",
     "transportSubsidyPerDay": 0,
-    "mockRoute": { "oneWayMinutes": 12, "oneWayFare": 800 }
+    "mockRoute": {
+      "oneWayMinutes": 12,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-09",
+    "deadline": "2026-10-04"
   },
   {
     "id": "o5",
@@ -69,7 +105,10 @@
     "title": "반찬가게 조리 보조 (교통비 지원)",
     "companyName": "서대문 손맛반찬",
     "address": "서울 서대문구 홍제동",
-    "location": { "lat": 37.575, "lng": 126.939 },
+    "location": {
+      "lat": 37.575,
+      "lng": 126.939
+    },
     "hourlyWage": 11500,
     "dailyWorkHours": 5,
     "hoursIsEstimated": false,
@@ -77,6 +116,137 @@
     "workTime": "09:00 ~ 14:00",
     "workDays": "화~토",
     "transportSubsidyPerDay": 2000,
-    "mockRoute": { "oneWayMinutes": 20, "oneWayFare": 1100 }
+    "mockRoute": {
+      "oneWayMinutes": 20,
+      "oneWayFare": 1100
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-08",
+    "deadline": "2026-10-08"
+  },
+  {
+    "id": "o6",
+    "source": "OWNER",
+    "title": "북아현 브런치카페 주말 홀",
+    "companyName": "브런치하우스 북아현",
+    "address": "서울 서대문구 북아현동",
+    "location": {
+      "lat": 37.557,
+      "lng": 126.956
+    },
+    "hourlyWage": 11200,
+    "dailyWorkHours": 5,
+    "hoursIsEstimated": false,
+    "url": null,
+    "workTime": "10:00 ~ 15:00",
+    "workDays": "토·일",
+    "transportSubsidyPerDay": 1000,
+    "mockRoute": {
+      "oneWayMinutes": 13,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-11",
+    "deadline": "2026-09-24"
+  },
+  {
+    "id": "o7",
+    "source": "OWNER",
+    "title": "연남동 와인바 마감 보조",
+    "companyName": "와인바 연남",
+    "address": "서울 마포구 연남동",
+    "location": {
+      "lat": 37.563,
+      "lng": 126.925
+    },
+    "hourlyWage": 12000,
+    "dailyWorkHours": 4,
+    "hoursIsEstimated": false,
+    "url": null,
+    "workTime": "18:00 ~ 22:00",
+    "workDays": "수~일",
+    "transportSubsidyPerDay": 0,
+    "mockRoute": {
+      "oneWayMinutes": 10,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-10",
+    "deadline": "2026-09-27"
+  },
+  {
+    "id": "o8",
+    "source": "OWNER",
+    "title": "응암동 세탁소 접수·정리",
+    "companyName": "클린세탁 응암",
+    "address": "서울 은평구 응암동",
+    "location": {
+      "lat": 37.592,
+      "lng": 126.918
+    },
+    "hourlyWage": 10600,
+    "dailyWorkHours": 6,
+    "hoursIsEstimated": false,
+    "url": null,
+    "workTime": "09:00 ~ 15:00",
+    "workDays": "월~금",
+    "transportSubsidyPerDay": 2000,
+    "mockRoute": {
+      "oneWayMinutes": 21,
+      "oneWayFare": 1000
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-09",
+    "deadline": "2026-09-30"
+  },
+  {
+    "id": "o9",
+    "source": "OWNER",
+    "title": "부암동 갤러리 카페 안내",
+    "companyName": "갤러리카페 부암",
+    "address": "서울 종로구 부암동",
+    "location": {
+      "lat": 37.592,
+      "lng": 126.966
+    },
+    "hourlyWage": 10900,
+    "dailyWorkHours": 5,
+    "hoursIsEstimated": false,
+    "url": null,
+    "workTime": "11:00 ~ 16:00",
+    "workDays": "화~토",
+    "transportSubsidyPerDay": 3000,
+    "mockRoute": {
+      "oneWayMinutes": 20,
+      "oneWayFare": 1000
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-08",
+    "deadline": "2026-10-03"
+  },
+  {
+    "id": "o10",
+    "source": "OWNER",
+    "title": "후암동 베이커리 오픈 준비",
+    "companyName": "후암제과",
+    "address": "서울 용산구 후암동",
+    "location": {
+      "lat": 37.548,
+      "lng": 126.978
+    },
+    "hourlyWage": 11800,
+    "dailyWorkHours": 4,
+    "hoursIsEstimated": false,
+    "url": null,
+    "workTime": "06:00 ~ 10:00",
+    "workDays": "월~토",
+    "transportSubsidyPerDay": 0,
+    "mockRoute": {
+      "oneWayMinutes": 20,
+      "oneWayFare": 800
+    },
+    "employmentType": "아르바이트",
+    "postedAt": "2026-09-07",
+    "deadline": "2026-10-06"
   }
 ]
