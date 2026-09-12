@@ -268,14 +268,20 @@ export const FALLBACK_ORIGINS: Record<string, LatLng> = {
 };
 
 /**
- * 고정 출발지에서 찾기. "안암역"은 물론 "안암"처럼 일부만 쳐도 찾습니다.
- * 카카오 키가 없을 때 이 목록이 사실상 검색 가능한 출발지 전부입니다.
+ * 고정 출발지에서 찾기.
+ *
+ * loose=true면 "안암"처럼 일부만 쳐도 찾습니다. 다만 부분 일치는 과하게 걸립니다 —
+ * "서울역센트럴자이"(아파트)가 "서울역"으로 잡히는 식입니다. 그래서 호출하는 쪽에서
+ * 완전 일치 → 지도 검색 → 부분 일치 순으로 씁니다 (→ api/jobs/route.ts resolveOrigin)
  */
-export function findFallbackOrigin(query: string): { label: string; location: LatLng } | null {
+export function findFallbackOrigin(
+  query: string,
+  { loose = true }: { loose?: boolean } = {},
+): { label: string; location: LatLng } | null {
   const q = query.trim();
   if (!q) return null;
   if (FALLBACK_ORIGINS[q]) return { label: q, location: FALLBACK_ORIGINS[q] };
-  if (q.length < 2) return null;
+  if (!loose || q.length < 2) return null;
 
   const hit = Object.keys(FALLBACK_ORIGINS).find((name) => name.includes(q) || q.includes(name));
   return hit ? { label: hit, location: FALLBACK_ORIGINS[hit] } : null;
@@ -310,10 +316,13 @@ export async function suggestPlaces(query: string, limit = 5): Promise<PlaceSugg
 
   const remote = KAKAO_KEY ? await searchMany(q, limit) : await osmSearch(q, limit);
 
+  // 카카오가 붙어 있으면 실제 장소를 위에 올립니다 (고정 목록은 키 없을 때의 보조 수단)
+  const [first, second] = KAKAO_KEY ? [remote, known] : [known, remote];
+
   // 같은 이름이 두 번 나오지 않게 합칩니다
-  const seen = new Set(known.map((p) => p.label));
-  const merged = [...known];
-  for (const p of remote) {
+  const seen = new Set<string>();
+  const merged: PlaceSuggestion[] = [];
+  for (const p of [...first, ...second]) {
     if (seen.has(p.label)) continue;
     seen.add(p.label);
     merged.push(p);

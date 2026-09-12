@@ -185,18 +185,11 @@ export async function GET(req: NextRequest) {
 async function resolveOrigin(
   query: string,
 ): Promise<{ location: LatLng; resolved: boolean; usedLabel?: string; outOfArea?: boolean }> {
-  // "안암"처럼 일부만 쳐도 고정 목록에서 찾습니다
-  const known = findFallbackOrigin(query);
-  if (known) {
-    return {
-      location: known.location,
-      resolved: true,
-      // 입력과 다른 이름으로 해석했으면 화면에 알려줍니다
-      ...(known.label === query ? {} : { usedLabel: known.label }),
-    };
-  }
+  // ① 고정 목록에 이름이 그대로 있으면 즉시 (네트워크 없음)
+  const exact = findFallbackOrigin(query, { loose: false });
+  if (exact) return { location: exact.location, resolved: true };
 
-  // 카카오 키가 없어도 지도에서 찾습니다. 번지·상세주소가 붙으면 한 단계씩 줄여가며 재시도합니다
+  // ② 지도에서 찾기. 번지·상세주소가 붙으면 한 단계씩 줄여가며 재시도합니다
   const found = await geocodeDetailed(query);
   if (found) {
     return {
@@ -206,6 +199,10 @@ async function resolveOrigin(
       outOfArea: haversineKm(found.location, SEOUL_CENTER) > SERVICE_RADIUS_KM,
     };
   }
+
+  // ③ 지도가 못 찾았을 때만 부분 일치 ("안암" → 안암역)
+  const near = findFallbackOrigin(query);
+  if (near) return { location: near.location, resolved: true, usedLabel: near.label };
 
   return {
     location: FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL],
