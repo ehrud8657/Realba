@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진짜시급 와이어프레임</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --mid:#6b6b6b; --line:#c9c9c9; --line2:#e4e4e4;
+    --bg:#f2f2f0; --panel:#fff; --fill:#e9e9e7;
+    --good:#0f7a42; --warn:#9a6b00; --bad:#b3261e; --accent:#1b64da;
+    --mono:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+  header.top{padding:32px 24px 8px;max-width:1400px;margin:0 auto}
+  header.top h1{margin:0 0 6px;font-size:24px;letter-spacing:-.02em}
+  header.top p{margin:0;color:var(--mid);max-width:60ch}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:12px;color:var(--mid)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block}
+
+  .grid{max-width:1400px;margin:0 auto;padding:16px 24px 64px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:28px;align-items:start}
+  .screen{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .screen > figcaption{padding:9px 12px;border-bottom:1px dashed var(--line);
+    font:600 12px/1.3 var(--mono);color:var(--mid);background:#fafaf8;letter-spacing:.02em}
+  .phone{padding:12px;display:flex;flex-direction:column;gap:9px}
+  .wide{grid-column:span 2}
+  @media(max-width:760px){.wide{grid-column:span 1}}
+
+  /* lo-fi primitives */
+  .bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fbfbfa;font-size:12px}
+  .field{border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:#fff;color:var(--mid);font-size:13px}
+  .field b{display:block;color:var(--ink);font-size:11px;font-weight:600;margin-bottom:3px;letter-spacing:.02em}
+  .btn{border:1.5px solid var(--ink);border-radius:6px;padding:10px;text-align:center;font-weight:600;font-size:13px;background:#fff}
+  .btn.primary{background:var(--ink);color:#fff}
+  .btn.ghost{border-color:var(--line);color:var(--mid);font-weight:400}
+  .card{border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff}
+  .muted{color:var(--mid);font-size:12px}
+  .tiny{font-size:11px;color:var(--mid)}
+  .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .between{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tag{font-size:10px;border:1px solid var(--line);border-radius:99px;padding:2px 7px;color:var(--mid);white-space:nowrap}
+  .tag.src{border-color:var(--ink);color:var(--ink);font-weight:600}
+  .box{background:var(--fill);border-radius:6px;display:flex;align-items:center;justify-content:center;
+    color:var(--mid);font-size:11px;font-family:var(--mono)}
+  .slider{height:3px;background:var(--line);border-radius:2px;position:relative;margin:10px 2px 2px}
+  .slider::after{content:"";position:absolute;left:38%;top:-4px;width:11px;height:11px;border-radius:50%;background:var(--ink)}
+  .hero{border:2px solid var(--ink);border-radius:8px;padding:12px;text-align:center}
+  .hero .num{font-size:26px;font-weight:700;letter-spacing:-.02em}
+  .nav{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding-top:8px;font-size:11px;color:var(--mid)}
+  .good{color:var(--good)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+  .strike{color:var(--mid);font-size:12px}
+  table.cmp{width:100%;border-collapse:collapse;font-size:12px}
+  table.cmp th,table.cmp td{border:1px solid var(--line2);padding:6px 7px;text-align:right}
+  table.cmp th:first-child,table.cmp td:first-child{text-align:left;color:var(--mid)}
+  table.cmp thead th{background:#fafaf8;text-align:center}
+  table.cmp tr.key td{font-weight:700;background:#fafaf8}
+  .steps{display:flex;gap:4px;align-items:center;font-size:10px;color:var(--mid)}
+  .steps i{flex:1;height:3px;background:var(--line);border-radius:2px;font-style:normal}
+  .steps i.on{background:var(--ink)}
+  .note{border-left:3px solid var(--accent);background:#f4f7fe;padding:8px 10px;font-size:11px;color:#33415c;border-radius:0 4px 4px 0}
+  .calc{font-family:var(--mono);font-size:11px;line-height:1.9}
+  .calc .hr{border-top:1px solid var(--line2);margin:4px 0}
+  .stat{flex:1;border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
+  .stat b{display:block;font-size:16px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>진짜시급 — 화면 와이어프레임</h1>
+  <p>시급 · 교통비 · 출퇴근 시간을 합쳐 <strong>실질시급</strong>을 계산하는 알바 검색 서비스. 저충실도(lo-fi) 와이어프레임이며 색과 타이포는 확정 디자인이 아닙니다. 상세 설명은 <code>WIREFRAME.md</code>를 참고하세요.</p>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--good)"></i> 손실률 0–10%</span>
+    <span><i class="sw" style="background:var(--warn)"></i> 10–20%</span>
+    <span><i class="sw" style="background:var(--bad)"></i> 20% 이상</span>
+    <span><i class="sw" style="background:var(--fill);border:1px solid var(--line)"></i> 플레이스홀더 영역</span>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- S-01 -->
+  <figure class="screen">
+    <figcaption>S-01 · 홈 / 검색</figcaption>
+    <div class="phone">
+      <div class="bar"><span>☰ 진짜시급</span><span class="tag">로그인</span></div>
+      <div style="padding:6px 2px">
+        <div style="font-size:17px;font-weight:700;line-height:1.4">시급 12,000원 알바,<br>진짜로는 9,276원입니다.</div>
+        <div class="muted" style="margin-top:6px">교통비와 출퇴근 시간까지 계산해 드릴게요.</div>
+      </div>
+      <div class="field"><b>📍 출발지</b>우리집 주소를 입력하세요</div>
+      <div class="row"><span class="tag">신촌역</span><span class="tag">집</span><span class="tag">학교</span></div>
+      <div class="field"><b>🔍 어떤 알바를 찾으세요?</b>카페, 편의점, 물류 …</div>
+      <div class="field"><b>⏱ 하루 근무시간 — 5.0시간</b><div class="slider"></div></div>
+      <div class="btn primary">실질시급으로 찾기 →</div>
+      <div class="tiny" style="text-align:center">— 또는 —</div>
+      <div class="btn ghost">공고 없이 직접 계산하기</div>
+      <div class="nav"><span>🏠 홈</span><span>🔍 검색</span><span>♡ 찜</span><span>👤 마이</span></div>
+    </div>
+  </figure>
+
+  <!-- S-02 -->
+  <figure class="screen">
+    <figcaption>S-02 · 검색 결과</figcaption>
+    <div class="phone">
+      <div class="bar"><span>← 신촌역 출발 · 카페</span><span class="tag">필터</span></div>
+      <div class="row">
+        <span class="tag">정렬 실질시급순 ▾</span><span class="tag">하루 5h ▾</span>
+        <span class="tag">사장님공고만</span><span class="tag">최저임금 이상</span>
+      </div>
+      <div class="tiny">총 48건 · 실질시급 기준 정렬</div>
+
+      <div class="card">
+        <div class="between"><span class="tag src">사장님공고</span><span class="tiny">♡ &nbsp; 비교+</span></div>
+        <div style="font-weight:600;margin:6px 0 2px">연희동 로스터리 바리스타</div>
+        <div class="tiny">서울 서대문구 연희동</div>
+        <div style="margin:8px 0 2px">
+          <div class="strike">시급 10,500원</div>
+          <div class="row"><span style="font-size:20px;font-weight:700">실질 9,544원</span>
+          <span class="good" style="font-weight:600">−9.1%</span></div>
+        </div>
+        <div class="tiny">🚇 편도 10분 · 💸 왕복 1,600원</div>
+        <div class="tiny">⏱ 09:00–14:00 (5h) · 확정</div>
+      </div>
+
+      <div class="card">
+        <div class="between"><span class="tag src">사람인</span><span class="tiny">♡ &nbsp; 비교+</span></div>
+        <div style="font-weight:600;margin:6px 0 2px">○○물류 상하차 아르바이트</div>
+        <div class="tiny">경기 고양시 덕양구</div>
+        <div style="margin:8px 0 2px">
+          <div class="strike">시급 12,000원</div>
+          <div class="row"><span style="font-size:20px;font-weight:700">실질 9,276원</span>
+          <span class="bad" style="font-weight:600">−22.7%</span></div>
+        </div>
+        <div class="tiny">🚇 편도 35분 · 💸 왕복 2,800원</div>
+        <div class="tiny">⏱ 5h <span class="tag">추정 ⓘ</span></div>
+      </div>
+
+      <div class="card" style="opacity:.55">
+        <div class="between"><span class="tag src">사람인</span><span class="tiny">♡</span></div>
+        <div style="font-weight:600;margin:6px 0 2px">△△편의점 야간 근무</div>
+        <div class="tiny bad">경로를 찾지 못했어요 — 명목시급만 표시</div>
+      </div>
+
+      <div class="btn ghost">더 보기</div>
+      <div class="nav"><span>🏠</span><span>🔍</span><span>♡</span><span>👤</span><span style="color:var(--ink);font-weight:600">비교 2 ▲</span></div>
+    </div>
+  </figure>
+
+  <!-- S-03 -->
+  <figure class="screen">
+    <figcaption>S-03 · 공고 상세 (핵심 화면)</figcaption>
+    <div class="phone">
+      <div class="bar"><span>← 공고 상세</span><span class="tiny">♡ &nbsp; ⇪</span></div>
+      <div>
+        <span class="tag src">사람인</span> <span class="tag">D-7</span>
+        <div style="font-weight:700;font-size:16px;margin:6px 0 2px">○○물류 상하차 아르바이트</div>
+        <div class="tiny">○○물류센터 · 경기 고양시 덕양구</div>
+      </div>
+
+      <div class="hero">
+        <div class="tiny">실질시급</div>
+        <div class="num">9,276원</div>
+        <div class="tiny">표시 시급 12,000원 대비</div>
+        <div class="bad" style="font-weight:600">−2,724원 (−22.7%)</div>
+      </div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">▸ 계산 과정</div>
+      <div class="card calc">
+        <div class="tiny" style="font-weight:600;color:var(--ink)">하루 버는 돈</div>
+        12,000 × 5h &nbsp;= &nbsp;60,000원<br>
+        − 왕복 교통비 = &nbsp;−2,800원
+        <div class="hr"></div>
+        실수령 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &nbsp;57,200원
+        <div style="height:8px"></div>
+        <div class="tiny" style="font-weight:600;color:var(--ink)">하루 쓰는 시간</div>
+        근무 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &nbsp;5.00h<br>
+        + 왕복 이동 &nbsp;&nbsp;= &nbsp;1.17h
+        <div class="hr"></div>
+        합계 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= &nbsp;6.17h
+        <div class="hr"></div>
+        <b>57,200 ÷ 6.17 = 9,276원/h</b>
+      </div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">▸ 조건 바꿔보기</div>
+      <div class="field"><b>하루 근무시간 — 5.0h</b><div class="slider"></div></div>
+      <div class="row">
+        <span class="tag">교통비 지원: 없음 ▾</span>
+        <span class="tag">주휴수당 포함: OFF</span>
+      </div>
+      <div class="note">값을 바꾸면 위 계산이 즉시 다시 계산됩니다.</div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">▸ 이동 경로</div>
+      <div class="box" style="height:92px">지 도 영 역 (카카오맵)</div>
+      <div class="tiny">신촌역 —🚇2호선→ 합정 —🚌7727→ 원흥 · 도보 8분<br>편도 35분 · 1,400원 · 환승 1회</div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">▸ 공고 정보</div>
+      <div class="card tiny">
+        <div class="between"><span>근무요일</span><span style="color:var(--ink)">월~금</span></div>
+        <div class="between"><span>근무시간</span><span style="color:var(--ink)">5h <span class="tag">추정 ⓘ</span></span></div>
+        <div class="between"><span>고용형태</span><span style="color:var(--ink)">아르바이트</span></div>
+        <div class="between"><span>마감일</span><span style="color:var(--ink)">2026-09-19</span></div>
+      </div>
+
+      <div class="btn primary">사람인에서 지원하기 ↗</div>
+      <div class="btn">비교함에 담기</div>
+    </div>
+  </figure>
+
+  <!-- S-04 -->
+  <figure class="screen">
+    <figcaption>S-04 · 단독 계산기</figcaption>
+    <div class="phone">
+      <div class="bar"><span>← 실질시급 계산기</span></div>
+      <div class="field"><b>시급</b>12,000 원</div>
+      <div class="field"><b>하루 근무시간</b>5.0 시간</div>
+      <div class="card tiny">
+        <div style="color:var(--ink);font-weight:600;margin-bottom:6px">이동 정보 입력 방식</div>
+        <div>◉ 주소로 자동 계산 &nbsp;&nbsp; ○ 직접 입력</div>
+      </div>
+      <div class="field"><b>출발지</b>신촌역 📍</div>
+      <div class="field"><b>근무지</b>경기 고양시 덕양구 … 📍</div>
+      <div class="note">자동 조회: 편도 35분 / 1,400원</div>
+      <div class="row"><span class="tag">교통비 지원: 일 1,000원 ▾</span><span class="tag">주휴수당 포함: ON</span></div>
+      <div class="field"><b>주 근무시간</b>25 시간</div>
+      <div class="hero">
+        <div class="tiny">실질시급 (주휴수당 포함)</div>
+        <div class="num">10,086원</div>
+      </div>
+      <div class="row"><div class="btn ghost" style="flex:1">결과 저장</div><div class="btn ghost" style="flex:1">공유</div></div>
+    </div>
+  </figure>
+
+  <!-- S-05 -->
+  <figure class="screen">
+    <figcaption>S-05 · 로그인 / 회원가입</figcaption>
+    <div class="phone">
+      <div style="text-align:center;padding:26px 0 10px;font-weight:700;font-size:18px">진짜시급</div>
+      <div class="btn" style="border-color:#e8b900;background:#fff9db">🟡 카카오로 3초 만에 시작</div>
+      <div class="btn ghost">이메일로 계속하기</div>
+      <div style="border-top:1px dashed var(--line);margin:12px 0"></div>
+      <div class="tiny">사장님이신가요?</div>
+      <div class="btn ghost">사업자 회원가입 →</div>
+      <div class="note">로그인하면 찜 · 계산 이력 · 즐겨찾는 출발지를 저장합니다.</div>
+      <div style="height:6px"></div>
+      <div class="tiny" style="font-weight:600;color:var(--ink)">가입 2단계 — 역할 선택</div>
+      <div class="row">
+        <div class="card" style="flex:1;text-align:center">👤<div class="tiny">구직자</div></div>
+        <div class="card" style="flex:1;text-align:center">🏪<div class="tiny">사장님</div></div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- S-08 -->
+  <figure class="screen">
+    <figcaption>S-08 · 마이페이지</figcaption>
+    <div class="phone">
+      <div class="bar"><span>마이페이지</span></div>
+      <div class="card"><b>👤 김구직</b> <span class="tag">구직자</span></div>
+      <div class="row">
+        <span class="tag" style="border-color:var(--ink);color:var(--ink)">찜한 공고</span>
+        <span class="tag">계산 이력</span><span class="tag">출발지</span>
+      </div>
+      <div class="tiny">♡ 찜한 공고 (5)</div>
+      <div class="card">
+        <div class="between"><span style="font-weight:600">연희동 로스터리</span><span class="good" style="font-weight:600">9,544원</span></div>
+        <div class="tiny bad">⚠ 마감 D-2</div>
+      </div>
+      <div class="card">
+        <div class="between"><span style="font-weight:600">△△편의점 주말</span><span class="warn" style="font-weight:600">9,120원</span></div>
+        <div class="tiny">마감 D-11</div>
+      </div>
+      <div class="tiny" style="margin-top:6px">📍 내 출발지</div>
+      <div class="card tiny">
+        <div class="between"><span style="color:var(--ink)">집 · 서울 마포구 …</span><span class="tag">기본</span></div>
+        <div class="between"><span style="color:var(--ink)">학교 · 서울 서대문구 …</span><span>⋯</span></div>
+      </div>
+      <div class="btn ghost">+ 출발지 추가</div>
+    </div>
+  </figure>
+
+  <!-- S-06 -->
+  <figure class="screen">
+    <figcaption>S-06 · 사장님 대시보드</figcaption>
+    <div class="phone">
+      <div class="bar"><span>진짜시급 <b>사장님</b></span><span class="tag">로그아웃</span></div>
+      <div style="font-weight:600">안녕하세요, 연희동 로스터리 님</div>
+      <div class="row" style="flex-wrap:nowrap">
+        <div class="stat"><b>2</b><span class="tiny">진행중</span></div>
+        <div class="stat"><b>1,284</b><span class="tiny">총 조회</span></div>
+        <div class="stat"><b>37</b><span class="tiny">찜한 사람</span></div>
+      </div>
+      <div class="btn primary">+ 새 공고 등록</div>
+      <div class="tiny">내 공고</div>
+      <div class="card">
+        <div class="between"><span style="font-weight:600">바리스타 파트타임</span><span class="tag">진행중</span></div>
+        <div class="tiny">시급 10,500원 · 09–14시 · 조회 842 · 찜 24</div>
+        <div class="note" style="margin-top:8px">💡 반경 3km 구직자 기준 평균 실질시급 <b>9,544원</b> — 동네 카페 중 3위</div>
+        <div class="row" style="margin-top:8px"><span class="tag">수정</span><span class="tag">마감</span><span class="tag">통계</span></div>
+      </div>
+      <div class="card" style="opacity:.6">
+        <div class="between"><span style="font-weight:600">주말 마감 담당</span><span class="tag">마감됨</span></div>
+        <div class="tiny">시급 11,000원 · 조회 402</div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- S-07 -->
+  <figure class="screen">
+    <figcaption>S-07 · 공고 등록 / 수정 (구조화 입력)</figcaption>
+    <div class="phone">
+      <div class="bar"><span>← 공고 등록</span><span class="tag">임시저장</span></div>
+      <div class="steps">①기본 <i class="on"></i> ②근무조건 <i></i> ③급여 <i></i> ④확인 <i></i></div>
+
+      <div class="field"><b>공고 제목 *</b>연희동 로스터리 바리스타</div>
+      <div class="field"><b>근무지 주소 * 🔍</b>서울 서대문구 연희로 …</div>
+      <div class="tiny good">↳ 좌표 확인됨 (37.5xxx, 126.9xxx)</div>
+      <div class="row"><span class="tag">모집 직종: 카페·음료 ▾</span><span class="tag">모집 인원 2명</span></div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink);margin-top:4px">② 근무조건</div>
+      <div class="card">
+        <div class="tiny" style="margin-bottom:6px">근무 요일 *</div>
+        <div class="row">
+          <span class="tag" style="background:var(--ink);color:#fff;border-color:var(--ink)">월</span>
+          <span class="tag" style="background:var(--ink);color:#fff;border-color:var(--ink)">화</span>
+          <span class="tag" style="background:var(--ink);color:#fff;border-color:var(--ink)">수</span>
+          <span class="tag" style="background:var(--ink);color:#fff;border-color:var(--ink)">목</span>
+          <span class="tag" style="background:var(--ink);color:#fff;border-color:var(--ink)">금</span>
+          <span class="tag">토</span><span class="tag">일</span>
+        </div>
+        <div class="row" style="margin-top:8px"><span class="tag">09:00</span>~<span class="tag">14:00</span><span class="tag">휴게 0분</span></div>
+        <div class="tiny" style="margin-top:6px;color:var(--ink)">→ 일 5.0시간 / 주 25.0시간</div>
+        <div class="tiny">☑ 요일마다 시간이 달라요</div>
+      </div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">③ 급여</div>
+      <div class="card">
+        <div class="tiny">급여형태 &nbsp;◉ 시급 &nbsp; ○ 일급 &nbsp; ○ 월급</div>
+        <div class="field" style="margin-top:6px"><b>금액</b>10,500 원</div>
+        <div class="tiny warn" style="margin-top:6px">⚠ 최저임금 이상이어야 등록됩니다</div>
+        <div class="tiny" style="margin-top:8px;color:var(--ink)">교통비 지원</div>
+        <div class="tiny">○ 없음 &nbsp; ◉ 일 정액 [1,000원] &nbsp; ○ 월 정액 &nbsp; ○ 실비 전액</div>
+        <div class="row" style="margin-top:8px"><span class="tag">식대 제공 ON</span><span class="tag">주휴 지급 ON</span></div>
+      </div>
+
+      <div class="tiny" style="font-weight:600;color:var(--ink)">④ 확인 — 구직자에게 보이는 모습</div>
+      <div class="hero">
+        <div class="tiny">반경 3km 구직자 기준 예상 실질시급</div>
+        <div class="num">9,544원</div>
+        <div class="tiny good">동네 카페 평균 9,210원보다 334원 높아요 👍</div>
+      </div>
+      <div class="btn primary">공고 등록하기</div>
+    </div>
+  </figure>
+
+  <!-- S-09 -->
+  <figure class="screen wide">
+    <figcaption>S-09 · 공고 비교</figcaption>
+    <div class="phone">
+      <div class="bar"><span>← 공고 비교 (3)</span><span class="tag">초기화</span></div>
+      <table class="cmp">
+        <thead><tr><th></th><th>A ○○물류</th><th>B 연희동 로스터리</th><th>C △△편의점</th></tr></thead>
+        <tbody>
+          <tr><td>표시 시급</td><td>12,000원</td><td>10,500원</td><td>11,000원</td></tr>
+          <tr><td>하루 근무</td><td>5h</td><td>5h</td><td>4h</td></tr>
+          <tr><td>편도 이동</td><td>35분</td><td>10분</td><td>22분</td></tr>
+          <tr><td>왕복 교통비</td><td>2,800원</td><td>1,600원</td><td>2,200원</td></tr>
+          <tr class="key"><td>실질시급</td><td class="bad">9,276원</td><td class="good">9,544원 ★</td><td class="warn">8,831원</td></tr>
+          <tr><td>손실률</td><td class="bad">−22.7%</td><td class="good">−9.1%</td><td class="warn">−19.7%</td></tr>
+          <tr><td>하루 실수령</td><td>57,200원</td><td>50,900원</td><td>41,800원</td></tr>
+          <tr><td>하루 구속시간</td><td>6.17h</td><td>5.33h</td><td>4.73h</td></tr>
+        </tbody>
+      </table>
+      <div class="note">💡 B는 시급이 가장 낮지만 실질시급은 가장 높습니다. 단, 하루 실수령액은 A가 가장 큽니다 — 목적(시간당 효율 vs 총 수입)에 따라 선택이 달라집니다.</div>
+    </div>
+  </figure>
+
+  <!-- 데스크톱 -->
+  <figure class="screen wide">
+    <figcaption>D-01 · 데스크톱 검색 결과 (2컬럼 확장)</figcaption>
+    <div class="phone">
+      <div class="bar"><span>진짜시급</span><span class="row"><span class="tag">📍 신촌역</span><span class="tag">카페</span><span class="tag">하루 5h</span><span class="tag">검색</span></span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div class="row"><span class="tag">정렬 실질시급순 ▾</span><span class="tag">반경 5km</span><span class="tag">최저임금 이상</span></div>
+          <div class="card">
+            <div class="between"><span class="tag src">사장님공고</span><span class="good" style="font-weight:600">−9.1%</span></div>
+            <div style="font-weight:600;margin:4px 0">연희동 로스터리 바리스타</div>
+            <div class="row"><span class="strike">10,500원</span><span style="font-weight:700">→ 실질 9,544원</span></div>
+            <div class="tiny">🚇 10분 · 💸 1,600원 · ⏱ 5h 확정</div>
+          </div>
+          <div class="card" style="border-color:var(--ink);border-width:2px">
+            <div class="between"><span class="tag src">사람인</span><span class="bad" style="font-weight:600">−22.7%</span></div>
+            <div style="font-weight:600;margin:4px 0">○○물류 상하차 아르바이트</div>
+            <div class="row"><span class="strike">12,000원</span><span style="font-weight:700">→ 실질 9,276원</span></div>
+            <div class="tiny">🚇 35분 · 💸 2,800원 · ⏱ 5h 추정</div>
+          </div>
+          <div class="card">
+            <div class="between"><span class="tag src">사람인</span><span class="warn" style="font-weight:600">−19.7%</span></div>
+            <div style="font-weight:600;margin:4px 0">△△편의점 주말 야간</div>
+            <div class="row"><span class="strike">11,000원</span><span style="font-weight:700">→ 실질 8,831원</span></div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div class="box" style="height:150px">지도 — 공고 핀 + 선택 공고 경로</div>
+          <div class="hero">
+            <div class="tiny">선택한 공고 · 실질시급</div>
+            <div class="num">9,276원</div>
+            <div class="bad tiny">표시 시급 12,000원 대비 −2,724원</div>
+          </div>
+          <div class="card calc">
+            (12,000 × 5h − 2,800원) ÷ (5h + 1.17h)<div class="hr"></div>= 57,200 ÷ 6.17 = <b>9,276원/h</b>
+          </div>
+          <div class="field"><b>하루 근무시간 — 5.0h</b><div class="slider"></div></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+</div>
+</body>
+</html>
