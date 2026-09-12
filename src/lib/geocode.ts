@@ -1,5 +1,14 @@
 /**
- * 카카오 로컬 API — 주소/장소명 → 좌표
+ * 주소/장소명 → 좌표
+ *
+ * 두 단계로 찾습니다.
+ *   1) 카카오 로컬 API  — KAKAO_REST_API_KEY가 있을 때. 상호명까지 잘 찾습니다
+ *   2) OSM Nominatim    — 키가 없을 때 쓰는 무료 대체. 동·도로명주소·역·대학·큰 시설은
+ *                         찾지만 개별 점포명("스타벅스 신촌점")은 못 찾습니다
+ *
+ * ⚠️ Nominatim은 무료 공용 서버입니다. 약관상 초당 1회 이하로 호출해야 하고
+ *    User-Agent를 밝혀야 합니다(아래에서 둘 다 지킵니다). 배포 환경은 IP를 공유해서
+ *    호출이 막힐 수 있으니, 진짜로 쓸 거면 카카오 키를 넣으세요
  *
  * 소유자: A (백엔드)
  *
@@ -21,6 +30,56 @@ export function hasGeocodeKey() {
   return Boolean(KAKAO_KEY);
 }
 
+/* ── OSM Nominatim (키 없이 쓰는 대체 지오코더) ───────────────────── */
+
+const OSM_ENDPOINT = 'https://nominatim.openstreetmap.org/search';
+const OSM_USER_AGENT = 'RealBa/1.0 (https://github.com/ehrud8657/Realba)';
+/** 약관상 초당 1회. 넉넉하게 1.1초 간격으로 줄을 세웁니다 */
+const OSM_MIN_INTERVAL_MS = 1100;
+
+let osmQueue: Promise<unknown> = Promise.resolve();
+let osmLastCall = 0;
+
+/** 호출을 한 줄로 세워 간격을 지킵니다 */
+function osmThrottled<T>(task: () => Promise<T>): Promise<T> {
+  const run = osmQueue.then(async () => {
+    const wait = OSM_MIN_INTERVAL_MS - (Date.now() - osmLastCall);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    osmLastCall = Date.now();
+    return task();
+  });
+  osmQueue = run.catch(() => undefined);
+  return run;
+}
+
+async function osmSearch(query: string, limit: number): Promise<PlaceSuggestion[]> {
+  return osmThrottled(async () => {
+    try {
+      const url =
+        `${OSM_ENDPOINT}?format=json&countrycodes=kr&accept-language=ko` +
+        `&limit=${limit}&q=${encodeURIComponent(query)}`;
+      const res = await fetch(url, {
+        headers: { 'User-Agent': OSM_USER_AGENT },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) return [];
+
+      const docs = (await res.json()) as any[];
+      return (docs ?? []).map((d) => {
+        const parts = String(d.display_name ?? '').split(',').map((x: string) => x.trim());
+        return {
+          label: parts[0] || query,
+          // "안암동, 성북구, 서울특별시, 대한민국" → "성북구 서울특별시" 정도만 보조로 보여줍니다
+          address: parts.slice(1, 3).reverse().join(' ') || undefined,
+          location: { lat: Number(d.lat), lng: Number(d.lon) },
+        };
+      });
+    } catch {
+      return [];
+    }
+  });
+}
+
 /**
  * "신촌역", "서울 서대문구 연희로 10" 같은 문자열을 좌표로 바꿉니다.
  * 실패하면 null을 돌려줍니다. (에러를 던지지 않습니다 — 한 건 실패가 전체를 죽이면 안 됨)
@@ -29,9 +88,16 @@ export async function geocode(query: string): Promise<LatLng | null> {
   const key = query.trim();
   if (!key) return null;
   if (cache.has(key)) return cache.get(key)!;
-  if (!KAKAO_KEY) return null;
 
-  const result = (await search('address', key)) ?? (await search('keyword', key));
+  let result: LatLng | null = null;
+  if (KAKAO_KEY) {
+    result = (await search('address', key)) ?? (await search('keyword', key));
+  }
+  if (!result) {
+    // 카카오 키가 없거나 못 찾았을 때 — 키 없이도 지도에 있는 곳이면 찾아냅니다
+    result = (await osmSearch(key, 1))[0]?.location ?? null;
+  }
+
   cache.set(key, result);
   return result;
 }
@@ -174,15 +240,23 @@ export async function suggestPlaces(query: string, limit = 5): Promise<PlaceSugg
   const q = query.trim();
   if (!q) return [];
 
-  if (KAKAO_KEY) {
-    const live = await searchMany(q, limit);
-    if (live.length) return live;
-  }
-
-  return Object.entries(FALLBACK_ORIGINS)
+  // 고정 목록에서 먼저 맞는 게 있으면 위에 올립니다 (네트워크 없이 즉시 응답)
+  const known: PlaceSuggestion[] = Object.entries(FALLBACK_ORIGINS)
     .filter(([name]) => name.includes(q) || q.includes(name))
-    .slice(0, limit)
+    .slice(0, 3)
     .map(([name, location]) => ({ label: name, location }));
+
+  const remote = KAKAO_KEY ? await searchMany(q, limit) : await osmSearch(q, limit);
+
+  // 같은 이름이 두 번 나오지 않게 합칩니다
+  const seen = new Set(known.map((p) => p.label));
+  const merged = [...known];
+  for (const p of remote) {
+    if (seen.has(p.label)) continue;
+    seen.add(p.label);
+    merged.push(p);
+  }
+  return merged.slice(0, limit);
 }
 
 async function searchMany(query: string, limit: number): Promise<PlaceSuggestion[]> {

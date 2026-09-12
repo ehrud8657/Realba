@@ -114,6 +114,8 @@ export interface JobsResponse {
     resolved: boolean;
     /** 입력과 다른 이름으로 해석했을 때 실제로 계산에 쓴 출발지 이름 */
     usedLabel?: string;
+    /** 서울에서 너무 멀어 결과가 의미 없을 때 (공고는 전부 서울입니다) */
+    outOfArea?: boolean;
   } | null;
   /** 조건에 맞는 전체 건수 (limit 적용 전) */
   total: number;

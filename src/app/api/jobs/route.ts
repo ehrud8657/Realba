@@ -30,7 +30,6 @@ import {
   FALLBACK_ORIGINS,
   findFallbackOrigin,
   geocode,
-  hasGeocodeKey,
 } from '@/lib/geocode';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
 import {
@@ -62,6 +61,10 @@ const DEFAULT_LIMIT = 10;
  * (이걸 안 하면 노원역에서 검색해도 신촌 김밥집이 7분으로 나와 항상 1위가 됩니다)
  */
 const MOCK_ROUTE_BASE_ORIGIN = FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL];
+
+/** 서울시청 기준 이 반경을 넘으면 "서울 밖"으로 봅니다. 공고가 전부 서울이라 결과가 의미 없습니다 */
+const SEOUL_CENTER: LatLng = { lat: 37.5665, lng: 126.978 };
+const SERVICE_RADIUS_KM = 60;
 const MOCK_ROUTE_VALID_RADIUS_KM = 1.5;
 
 function baseRoute(origin: LatLng, job: SeedJob): Route {
@@ -163,6 +166,7 @@ export async function GET(req: NextRequest) {
       location: origin.location,
       resolved: origin.resolved,
       ...(origin.usedLabel ? { usedLabel: origin.usedLabel } : {}),
+      ...(origin.outOfArea ? { outOfArea: true } : {}),
     },
     total,
     limit,
@@ -180,7 +184,7 @@ export async function GET(req: NextRequest) {
  */
 async function resolveOrigin(
   query: string,
-): Promise<{ location: LatLng; resolved: boolean; usedLabel?: string }> {
+): Promise<{ location: LatLng; resolved: boolean; usedLabel?: string; outOfArea?: boolean }> {
   // "안암"처럼 일부만 쳐도 고정 목록에서 찾습니다
   const known = findFallbackOrigin(query);
   if (known) {
@@ -192,9 +196,14 @@ async function resolveOrigin(
     };
   }
 
-  if (hasGeocodeKey()) {
-    const found = await geocode(query);
-    if (found) return { location: found, resolved: true };
+  // 카카오 키가 없어도 OSM으로 찾아봅니다 (→ lib/geocode.ts)
+  const found = await geocode(query);
+  if (found) {
+    return {
+      location: found,
+      resolved: true,
+      outOfArea: haversineKm(found, SEOUL_CENTER) > SERVICE_RADIUS_KM,
+    };
   }
 
   return {
