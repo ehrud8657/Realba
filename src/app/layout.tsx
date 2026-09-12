@@ -17,13 +17,17 @@ export const metadata: Metadata = {
     title: '리알바',
   },
   icons: {
-    icon: '/icon-192.png',
+    // 브라우저 탭에는 벡터를 쓰고, 폰 홈 화면에는 PNG를 씁니다
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
     apple: '/apple-touch-icon.png',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2563EB', // 폰 상단 상태바 색 (Figma 시안의 브랜드 블루)
+  themeColor: '#0048CD', // 폰 상단 상태바 색 (로고의 파랑)
   width: 'device-width',
   initialScale: 1,
   // maximumScale은 두지 않습니다 — 확대를 막으면 숫자를 키워 봐야 하는 사용자가 막힙니다
