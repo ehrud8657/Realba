@@ -1,39 +1,39 @@
-/**
- * 계정 · 찜 · 내 출발지 · 기본 검색 조건 저장소
+﻿/**
+ * 怨꾩젙 쨌 李?쨌 ??異쒕컻吏 쨌 湲곕낯 寃??議곌굔 ??μ냼
  *
- * ★ 지금은 브라우저(localStorage)에만 저장합니다. 서버도 DB도 쓰지 않습니다.
+ * ??吏湲덉? 釉뚮씪?곗?(localStorage)?먮쭔 ??ν빀?덈떎. ?쒕쾭??DB???곗? ?딆뒿?덈떎.
  *
- *   그래서 이런 한계가 있습니다. 화면에도 그대로 고지합니다.
- *   - 아이디 중복확인은 **이 기기에 저장된 계정들** 안에서만 검사합니다
- *   - 다른 기기에서는 같은 아이디로 로그인할 수 없습니다
- *   - 브라우저 데이터를 지우면 계정도 함께 사라집니다
+ *   洹몃옒???대윴 ?쒓퀎媛 ?덉뒿?덈떎. ?붾㈃?먮룄 洹몃?濡?怨좎??⑸땲??
+ *   - ?꾩씠??以묐났?뺤씤? **??湲곌린????λ맂 怨꾩젙??* ?덉뿉?쒕쭔 寃?ы빀?덈떎
+ *   - ?ㅻⅨ 湲곌린?먯꽌??媛숈? ?꾩씠?붾줈 濡쒓렇?명븷 ???놁뒿?덈떎
+ *   - 釉뚮씪?곗? ?곗씠?곕? 吏?곕㈃ 怨꾩젙???④퍡 ?щ씪吏묐땲??
  *
- * ⚠️ 비밀번호는 PBKDF2 해시로만 저장하고 원문은 어디에도 남기지 않습니다.
- *    그래도 기기 안 데모 계정이라 실제 보안이 되는 구조가 아닙니다.
- *    화면에서 "실제로 쓰는 비밀번호를 넣지 마세요"라고 안내합니다.
+ * ?좑툘 鍮꾨?踰덊샇??PBKDF2 ?댁떆濡쒕쭔 ??ν븯怨??먮Ц? ?대뵒?먮룄 ?④린吏 ?딆뒿?덈떎.
+ *    洹몃옒??湲곌린 ???곕え 怨꾩젙?대씪 ?ㅼ젣 蹂댁븞???섎뒗 援ъ“媛 ?꾨떃?덈떎.
+ *    ?붾㈃?먯꽌 "?ㅼ젣濡??곕뒗 鍮꾨?踰덊샇瑜??ｌ? 留덉꽭???쇨퀬 ?덈궡?⑸땲??
  *
- * 화면은 이 파일의 함수만 부르고 localStorage를 직접 건드리지 않습니다.
- * 나중에 서버 계정으로 바꿀 때 이 파일만 갈아끼우면 화면은 그대로입니다.
+ * ?붾㈃? ???뚯씪???⑥닔留?遺瑜닿퀬 localStorage瑜?吏곸젒 嫄대뱶由ъ? ?딆뒿?덈떎.
+ * ?섏쨷???쒕쾭 怨꾩젙?쇰줈 諛붽? ?????뚯씪留?媛덉븘?쇱슦硫??붾㈃? 洹몃?濡쒖엯?덈떎.
  */
 
 import type { JobSource, TransportMode } from '@/types';
 
 const KEY = 'realba:account';
-/** 로그인하지 않은 상태에서 찜한 것들이 담기는 자리 */
+/** 濡쒓렇?명븯吏 ?딆? ?곹깭?먯꽌 李쒗븳 寃껊뱾???닿린???먮━ */
 const GUEST = '__guest__';
 
 export type UserRole = 'SEEKER' | 'OWNER';
 
 export interface Profile {
-  /** 로그인 아이디 */
+  /** 濡쒓렇???꾩씠??*/
   userId: string;
-  /** 이름 */
+  /** ?대쫫 */
   name: string;
   role: UserRole;
   createdAt: string;
 }
 
-/** 찜한 공고. 목록에서 바로 보여줄 수 있게 공고 요약을 함께 저장합니다 */
+/** 李쒗븳 怨듦퀬. 紐⑸줉?먯꽌 諛붾줈 蹂댁뿬以????덇쾶 怨듦퀬 ?붿빟???④퍡 ??ν빀?덈떎 */
 export interface FavoriteJob {
   jobId: string;
   title: string;
@@ -42,7 +42,7 @@ export interface FavoriteJob {
   hourlyWage: number;
   source: JobSource;
   savedAt: string;
-  /** 찜할 당시의 계산 결과. 나중에 "그때 vs 지금"을 비교해 보여줍니다 */
+  /** 李쒗븷 ?뱀떆??怨꾩궛 寃곌낵. ?섏쨷??"洹몃븣 vs 吏湲???鍮꾧탳??蹂댁뿬以띾땲??*/
   snapshot: {
     realHourlyWage: number;
     lossRate: number;
@@ -53,9 +53,9 @@ export interface FavoriteJob {
 }
 
 /**
- * 사장님이 직접 올린 공고.
- * 좌표는 저장하지 않고, 검색·미리보기 때 서버가 주소를 지오코딩합니다
- * (→ src/app/api/jobs/preview/route.ts)
+ * ?ъ옣?섏씠 吏곸젒 ?щ┛ 怨듦퀬.
+ * 醫뚰몴????ν븯吏 ?딄퀬, 寃?됀룸?由щ낫湲????쒕쾭媛 二쇱냼瑜?吏?ㅼ퐫?⑺빀?덈떎
+ * (??src/app/api/jobs/preview/route.ts)
  */
 export interface OwnerJobDraft {
   id: string;
@@ -66,15 +66,15 @@ export interface OwnerJobDraft {
   dailyWorkHours: number;
   /** "09:00 ~ 14:00" */
   workTime?: string;
-  /** "월~금" */
+  /** "??湲? */
   workDays?: string;
-  /** 하루 교통비 지원액(원) */
+  /** ?섎（ 援먰넻鍮?吏?먯븸(?? */
   transportSubsidyPerDay: number;
   postedAt: string;
   deadline?: string;
 }
 
-/** 집·학교처럼 별칭을 붙여 저장해 둔 출발지 */
+/** 吏뫢룻븰援먯쿂??蹂꾩묶??遺숈뿬 ??ν빐 ??異쒕컻吏 */
 export interface SavedPlace {
   id: string;
   label: string;
@@ -84,38 +84,38 @@ export interface SavedPlace {
 export interface Preferences {
   hours: number;
   mode: TransportMode;
-  /** 기본 출발지로 쓸 SavedPlace id */
+  /** 湲곕낯 異쒕컻吏濡???SavedPlace id */
   defaultPlaceId: string | null;
 }
 
-/** 계정 하나에 딸린 데이터 */
+/** 怨꾩젙 ?섎굹???몃┛ ?곗씠??*/
 interface UserData {
   favorites: FavoriteJob[];
   places: SavedPlace[];
   prefs: Preferences;
-  /** 사장님 계정이 올린 공고 */
+  /** ?ъ옣??怨꾩젙???щ┛ 怨듦퀬 */
   myJobs: OwnerJobDraft[];
 }
 
-/** localStorage에 실제로 들어가는 모양 */
+/** localStorage???ㅼ젣濡??ㅼ뼱媛??紐⑥뼇 */
 interface Persisted {
   accounts: {
     userId: string;
     name: string;
     role: UserRole;
-    /** PBKDF2(비밀번호, salt) 결과. 원문은 저장하지 않습니다 */
+    /** PBKDF2(鍮꾨?踰덊샇, salt) 寃곌낵. ?먮Ц? ??ν븯吏 ?딆뒿?덈떎 */
     passwordHash: string;
     salt: string;
     createdAt: string;
   }[];
-  /** 로그인 상태 유지 — 여기 값이 있으면 다음에 열어도 그대로 로그인입니다 */
+  /** 濡쒓렇???곹깭 ?좎? ???ш린 媛믪씠 ?덉쑝硫??ㅼ쓬???댁뼱??洹몃?濡?濡쒓렇?몄엯?덈떎 */
   sessionUserId: string | null;
-  /** 로그인 화면에 미리 채워 둘 아이디 ('아이디 저장' 체크 시) */
+  /** 濡쒓렇???붾㈃??誘몃━ 梨꾩썙 ???꾩씠??('?꾩씠????? 泥댄겕 ?? */
   rememberedUserId: string | null;
   data: Record<string, UserData>;
 }
 
-/** 화면이 보는 상태 */
+/** ?붾㈃??蹂대뒗 ?곹깭 */
 export interface AccountState {
   profile: Profile | null;
   favorites: FavoriteJob[];
@@ -123,7 +123,7 @@ export interface AccountState {
   prefs: Preferences;
   myJobs: OwnerJobDraft[];
   rememberedUserId: string | null;
-  /** 이 기기에 저장된 계정 수 (로그인 안내에 씁니다) */
+  /** ??湲곌린????λ맂 怨꾩젙 ??(濡쒓렇???덈궡???곷땲?? */
   accountCount: number;
 }
 
@@ -137,16 +137,16 @@ export const EMPTY_STATE: AccountState = {
   accountCount: 0,
 };
 
-/* ── 저장소 ──────────────────────────────────────────────── */
+/* ?? ??μ냼 ???????????????????????????????????????????????? */
 
 let cache: Persisted | null = null;
 let serverProfile: Profile | null = null;
 /**
- * 화면에 넘겨줄 상태를 만들어 두고 재사용합니다.
+ * ?붾㈃???섍꺼以??곹깭瑜?留뚮뱾???먭퀬 ?ъ궗?⑺빀?덈떎.
  *
- * ★ useSyncExternalStore는 스냅샷을 === 로 비교합니다. 부를 때마다 새 객체를 만들면
- *   React가 "계속 바뀐다"고 보고 무한 렌더에 빠집니다 (실제로 화면이 안 뜨는 사고가 났습니다).
- *   그래서 저장이 일어날 때만 비우고, 그 외에는 같은 객체를 돌려줍니다.
+ * ??useSyncExternalStore???ㅻ깄?룹쓣 === 濡?鍮꾧탳?⑸땲?? 遺瑜??뚮쭏????媛앹껜瑜?留뚮뱾硫?
+ *   React媛 "怨꾩냽 諛붾먮떎"怨?蹂닿퀬 臾댄븳 ?뚮뜑??鍮좎쭛?덈떎 (?ㅼ젣濡??붾㈃?????⑤뒗 ?ш퀬媛 ?ъ뒿?덈떎).
+ *   洹몃옒????μ씠 ?쇱뼱???뚮쭔 鍮꾩슦怨? 洹??몄뿉??媛숈? 媛앹껜瑜??뚮젮以띾땲??
  */
 let viewCache: AccountState | null = null;
 const listeners = new Set<() => void>();
@@ -172,7 +172,7 @@ function load(): Persisted {
       data: parsed?.data ?? {},
     };
   } catch {
-    // 시크릿 모드 등에서 읽기가 막히면 빈 상태로 시작합니다
+    // ?쒗겕由?紐⑤뱶 ?깆뿉???쎄린媛 留됲엳硫?鍮??곹깭濡??쒖옉?⑸땲??
     cache = empty;
   }
   return cache;
@@ -184,7 +184,7 @@ function save(next: Persisted) {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
-    // 저장이 막혀도 화면은 계속 동작합니다 (새로고침하면 사라질 뿐)
+    // ??μ씠 留됲????붾㈃? 怨꾩냽 ?숈옉?⑸땲??(?덈줈怨좎묠?섎㈃ ?щ씪吏?肉?
   }
   listeners.forEach((fn) => fn());
 }
@@ -203,14 +203,14 @@ function dataOf(p: Persisted, key = currentKey(p)): UserData {
   };
 }
 
-/** 지금 로그인한 사람(또는 비로그인 자리)의 데이터만 바꿉니다 */
+/** 吏湲?濡쒓렇?명븳 ?щ엺(?먮뒗 鍮꾨줈洹몄씤 ?먮━)???곗씠?곕쭔 諛붽퓠?덈떎 */
 function updateData(fn: (d: UserData) => UserData) {
   const p = load();
   const key = currentKey(p);
   save({ ...p, data: { ...p.data, [key]: fn(dataOf(p, key)) } });
 }
 
-/** 화면이 쓰는 상태를 만들어 돌려줍니다 */
+/** ?붾㈃???곕뒗 ?곹깭瑜?留뚮뱾???뚮젮以띾땲??*/
 export function readAccount(): AccountState {
   if (typeof window === 'undefined') return EMPTY_STATE;
   if (viewCache) return viewCache;
@@ -221,7 +221,7 @@ export function readAccount(): AccountState {
   viewCache = {
     profile: account
       ? {
-          userId: account.userId,
+          userId: account!.userId,
           name: account.name,
           role: account.role,
           createdAt: account.createdAt,
@@ -234,10 +234,10 @@ export function readAccount(): AccountState {
   return viewCache;
 }
 
-/** useSyncExternalStore용 구독 */
+/** useSyncExternalStore??援щ룆 */
 export function subscribeAccount(listener: () => void) {
   listeners.add(listener);
-  // 다른 탭에서 바뀐 것도 반영합니다
+  // ?ㅻⅨ ??뿉??諛붾?寃껊룄 諛섏쁺?⑸땲??
   const onStorage = (e: StorageEvent) => {
     if (e.key === KEY) {
       cache = null;
@@ -253,7 +253,7 @@ export function subscribeAccount(listener: () => void) {
   };
 }
 
-/* ── 비밀번호 해싱 ───────────────────────────────────────── */
+/* ?? 鍮꾨?踰덊샇 ?댁떛 ????????????????????????????????????????? */
 
 const PBKDF2_ITERATIONS = 100_000;
 
@@ -278,35 +278,35 @@ function randomSalt() {
   return toHex(crypto.getRandomValues(new Uint8Array(16)).buffer);
 }
 
-/* ── 입력 검증 ───────────────────────────────────────────── */
+/* ?? ?낅젰 寃利?????????????????????????????????????????????? */
 
-export const USER_ID_RULE = '영문·숫자·밑줄 4~20자';
-export const PASSWORD_RULE = '6자 이상';
+export const USER_ID_RULE = '?곷Ц쨌?レ옄쨌諛묒쨪 4~20??;
+export const PASSWORD_RULE = '6???댁긽';
 
 export function validateUserId(userId: string): string | null {
   const v = userId.trim();
-  if (!v) return '아이디를 입력해 주세요.';
-  if (!/^[A-Za-z0-9_]{4,20}$/.test(v)) return `아이디는 ${USER_ID_RULE}여야 해요.`;
+  if (!v) return '?꾩씠?붾? ?낅젰??二쇱꽭??';
+  if (!/^[A-Za-z0-9_]{4,20}$/.test(v)) return `?꾩씠?붾뒗 ${USER_ID_RULE}?ъ빞 ?댁슂.`;
   return null;
 }
 
 export function validatePassword(password: string): string | null {
-  if (!password) return '비밀번호를 입력해 주세요.';
-  if (password.length < 6) return `비밀번호는 ${PASSWORD_RULE}이어야 해요.`;
+  if (!password) return '鍮꾨?踰덊샇瑜??낅젰??二쇱꽭??';
+  if (password.length < 6) return `鍮꾨?踰덊샇??${PASSWORD_RULE}?댁뼱???댁슂.`;
   return null;
 }
 
 /**
- * 아이디 중복확인.
- * ⚠️ 이 기기에 저장된 계정들 안에서만 검사합니다. 서버가 없으므로 다른 사람이
- *    같은 아이디로 가입하는 것은 막지 못합니다.
+ * ?꾩씠??以묐났?뺤씤.
+ * ?좑툘 ??湲곌린????λ맂 怨꾩젙???덉뿉?쒕쭔 寃?ы빀?덈떎. ?쒕쾭媛 ?놁쑝誘濡??ㅻⅨ ?щ엺??
+ *    媛숈? ?꾩씠?붾줈 媛?낇븯??寃껋? 留됱? 紐삵빀?덈떎.
  */
 export function isUserIdTaken(userId: string): boolean {
-  // 중복확인은 회원가입 요청 시 서버가 원자적으로 검사합니다.
+  // 以묐났?뺤씤? ?뚯썝媛???붿껌 ???쒕쾭媛 ?먯옄?곸쑝濡?寃?ы빀?덈떎.
   return false;
 }
 
-/* ── 회원가입 · 로그인 ───────────────────────────────────── */
+/* ?? ?뚯썝媛??쨌 濡쒓렇??????????????????????????????????????? */
 
 export type AuthResult = { ok: true } | { ok: false; message: string };
 
@@ -319,15 +319,15 @@ export async function signUp(params: {
   try {
     const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signup', ...params }) });
     const result = await response.json();
-    if (!response.ok) return { ok: false, message: result.message ?? '회원가입에 실패했어요.' };
+    if (!response.ok) return { ok: false, message: result.message ?? '?뚯썝媛?낆뿉 ?ㅽ뙣?덉뼱??' };
     serverProfile = result.profile;
     save({ ...load(), sessionUserId: serverProfile?.userId ?? params.userId });
     return { ok: true };
-  } catch { return { ok: false, message: '서버 연결을 확인해 주세요.' }; }
+  } catch { return { ok: false, message: '?쒕쾭 ?곌껐???뺤씤??二쇱꽭??' }; }
   const name = params.name.trim();
   const userId = params.userId.trim();
 
-  if (!name) return { ok: false, message: '이름을 입력해 주세요.' };
+  if (!name) return { ok: false, message: '?대쫫???낅젰??二쇱꽭??' };
 
   const idError = validateUserId(userId);
   if (idError) return { ok: false, message: idError! };
@@ -335,14 +335,14 @@ export async function signUp(params: {
   const pwError = validatePassword(params.password);
   if (pwError) return { ok: false, message: pwError! };
 
-  // 중복확인 버튼을 눌렀더라도 제출 시점에 한 번 더 봅니다
-  if (isUserIdTaken(userId)) return { ok: false, message: '이미 사용 중인 아이디예요.' };
+  // 以묐났?뺤씤 踰꾪듉???뚮??붾씪???쒖텧 ?쒖젏????踰???遊낅땲??
+  if (isUserIdTaken(userId)) return { ok: false, message: '?대? ?ъ슜 以묒씤 ?꾩씠?붿삁??' };
 
   const salt = randomSalt();
   const passwordHash = await hashPassword(params.password, salt);
 
   const p = load();
-  // 로그인 전에 찜해 둔 것이 있으면 새 계정으로 옮겨 줍니다
+  // 濡쒓렇???꾩뿉 李쒗빐 ??寃껋씠 ?덉쑝硫???怨꾩젙?쇰줈 ??꺼 以띾땲??
   const guest = dataOf(p, GUEST);
   const carried = guest.favorites.length > 0 || guest.places.length > 0;
 
@@ -378,35 +378,35 @@ export async function signIn(params: {
   try {
     const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signin', ...params }) });
     const result = await response.json();
-    if (!response.ok) return { ok: false, message: result.message ?? '로그인에 실패했어요.' };
+    if (!response.ok) return { ok: false, message: result.message ?? '濡쒓렇?몄뿉 ?ㅽ뙣?덉뼱??' };
     serverProfile = result.profile;
     save({ ...load(), sessionUserId: serverProfile?.userId ?? params.userId, rememberedUserId: params.remember ? params.userId : null });
     return { ok: true };
-  } catch { return { ok: false, message: '서버 연결을 확인해 주세요.' }; }
+  } catch { return { ok: false, message: '?쒕쾭 ?곌껐???뺤씤??二쇱꽭??' }; }
   const userId = params.userId.trim();
   const p = load();
   const account = p.accounts.find((a) => a.userId.toLowerCase() === userId.toLowerCase());
 
-  // 아이디가 없는지 비밀번호가 틀렸는지 구분해서 알려주지 않습니다
-  const fail: AuthResult = { ok: false, message: '아이디 또는 비밀번호가 맞지 않아요.' };
+  // ?꾩씠?붽? ?녿뒗吏 鍮꾨?踰덊샇媛 ??몃뒗吏 援щ텇?댁꽌 ?뚮젮二쇱? ?딆뒿?덈떎
+  const fail: AuthResult = { ok: false, message: '?꾩씠???먮뒗 鍮꾨?踰덊샇媛 留욎? ?딆븘??' };
   if (!account) {
     return p.accounts.length === 0
-      ? { ok: false, message: '이 기기에 저장된 계정이 없어요. 회원가입을 먼저 해주세요.' }
+      ? { ok: false, message: '??湲곌린????λ맂 怨꾩젙???놁뼱?? ?뚯썝媛?낆쓣 癒쇱? ?댁＜?몄슂.' }
       : fail;
   }
 
-  const hash = await hashPassword(params.password, account.salt);
-  if (hash !== account.passwordHash) return fail;
+  const hash = await hashPassword(params.password, account!.salt);
+  if (hash !== account!.passwordHash) return fail;
 
   save({
     ...p,
-    sessionUserId: account.userId,
-    rememberedUserId: params.remember ? account.userId : null,
+    sessionUserId: account!.userId,
+    rememberedUserId: params.remember ? account!.userId : null,
   });
   return { ok: true };
 }
 
-/** 로그아웃 — 찜과 저장한 출발지는 계정에 그대로 남습니다 */
+/** 濡쒓렇?꾩썐 ??李쒓낵 ??ν븳 異쒕컻吏??怨꾩젙??洹몃?濡??⑥뒿?덈떎 */
 export async function signOut() {
   try { await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signout' }) }); } catch { /* local cleanup below */ }
   serverProfile = null;
@@ -414,7 +414,7 @@ export async function signOut() {
   save({ ...p, sessionUserId: null });
 }
 
-/* ── 찜 ──────────────────────────────────────────────────── */
+/* ?? 李????????????????????????????????????????????????????? */
 
 export function isFavorite(jobId: string) {
   return readAccount().favorites.some((f) => f.jobId === jobId);
@@ -436,7 +436,7 @@ export function removeFavorite(jobId: string) {
   updateData((d) => ({ ...d, favorites: d.favorites.filter((f) => f.jobId !== jobId) }));
 }
 
-/* ── 내 출발지 ───────────────────────────────────────────── */
+/* ?? ??異쒕컻吏 ????????????????????????????????????????????? */
 
 export function addPlace(label: string, query: string) {
   const l = label.trim();
@@ -448,7 +448,7 @@ export function addPlace(label: string, query: string) {
     return {
       ...d,
       places: [...d.places.filter((p) => p.label !== l), { id, label: l, query: q }],
-      // 첫 출발지는 자동으로 기본이 됩니다
+      // 泥?異쒕컻吏???먮룞?쇰줈 湲곕낯???⑸땲??
       prefs: { ...d.prefs, defaultPlaceId: d.prefs.defaultPlaceId ?? id },
     };
   });
@@ -469,18 +469,18 @@ export function setDefaultPlace(id: string | null) {
   updateData((d) => ({ ...d, prefs: { ...d.prefs, defaultPlaceId: id } }));
 }
 
-/** 기본 출발지 문자열. 없으면 null */
+/** 湲곕낯 異쒕컻吏 臾몄옄?? ?놁쑝硫?null */
 export function defaultOrigin(state: AccountState = readAccount()): string | null {
   const place = state.places.find((p) => p.id === state.prefs.defaultPlaceId);
   return place?.query ?? null;
 }
 
-/* ── 사장님 공고 ─────────────────────────────────────────── */
+/* ?? ?ъ옣??怨듦퀬 ??????????????????????????????????????????? */
 
 export function addMyJob(job: Omit<OwnerJobDraft, 'id' | 'postedAt'>): OwnerJobDraft {
   const created: OwnerJobDraft = {
     ...job,
-    // 목데이터 id(o1, s1…)와 겹치지 않게 접두사를 붙입니다
+    // 紐⑸뜲?댄꽣 id(o1, s1??? 寃뱀튂吏 ?딄쾶 ?묐몢?щ? 遺숈엯?덈떎
     id: `my-${Date.now().toString(36)}`,
     postedAt: new Date().toISOString().slice(0, 10),
   };
@@ -499,8 +499,9 @@ export function removeMyJob(id: string) {
   updateData((d) => ({ ...d, myJobs: d.myJobs.filter((j) => j.id !== id) }));
 }
 
-/* ── 기본 검색 조건 ──────────────────────────────────────── */
+/* ?? 湲곕낯 寃??議곌굔 ???????????????????????????????????????? */
 
 export function setPreferences(next: Partial<Pick<Preferences, 'hours' | 'mode'>>) {
   updateData((d) => ({ ...d, prefs: { ...d.prefs, ...next } }));
 }
+
