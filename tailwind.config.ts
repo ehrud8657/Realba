@@ -6,8 +6,8 @@ const config: Config = {
     extend: {
       colors: {
         // Figma 시안(뉴비톤) 기준. 예전 값은 docs/WIREFRAME.md §5에 있습니다
-        brand: '#2563EB',      // 인트로 배경, CTA, 강조
-        'brand-deep': '#1D4ED8',
+        brand: '#0048CD',      // 로고(public/logo.svg)의 파랑. 인트로 배경·CTA·강조
+        'brand-deep': '#003AA5',
         good: '#0F9D58',
         warn: '#B8860B',
         bad: '#EF4444',        // 손실률, 마이너스 금액
