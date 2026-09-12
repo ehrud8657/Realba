@@ -36,6 +36,18 @@ export interface Job {
 
   /** 하루 교통비 지원액(원). 사장님 공고에만 있습니다 */
   transportSubsidyPerDay?: number;
+
+  /* ── 아래는 있으면 화면에 더 보여주는 부가 정보. 없으면 그 줄을 생략합니다 ── */
+  /** "09:00 ~ 14:00" */
+  workTime?: string;
+  /** "월~금" */
+  workDays?: string;
+  /** "아르바이트" */
+  employmentType?: string;
+  /** 마감일 ISO (YYYY-MM-DD). 상세에서 D-n 으로 보여줍니다 */
+  deadline?: string;
+  /** 등록일 ISO (YYYY-MM-DD). 최신순 정렬에 씁니다 */
+  postedAt?: string;
 }
 
 /** 출발지 → 근무지 편도 경로 */
@@ -61,6 +73,10 @@ export interface Calc {
   dailyCommuteCost: number;
   /** 하루 왕복 이동시간(시간) */
   dailyCommuteHours: number;
+  /** 하루치로 환산한 주휴수당(원). 포함하지 않으면 0 */
+  dailyHolidayPay: number;
+  /** 주휴수당이 실제로 더해졌는지 (주 15시간 미만이면 켜도 false) */
+  includesWeeklyHolidayPay: boolean;
   /** 하루 구속시간 (근무 + 이동) */
   totalOccupiedHours: number;
   /** 손실률. 0.227 = 22.7% 손해 */
@@ -76,13 +92,34 @@ export interface JobResult {
   calc: Calc | null;
 }
 
-export type SortKey = 'REAL_WAGE' | 'NOMINAL_WAGE' | 'COMMUTE';
+export type SortKey = 'REAL_WAGE' | 'NOMINAL_WAGE' | 'COMMUTE' | 'LOSS_RATE' | 'RECENT';
+
+/** 검색 결과 화면의 필터 */
+export interface JobFilters {
+  /** 사장님 공고만 보기 */
+  ownerOnly: boolean;
+  /** 최저임금 이상만 보기 */
+  aboveMinimumWage: boolean;
+}
 
 /** GET /api/jobs 응답 */
 export interface JobsResponse {
   /** 'mock' = 목데이터, 'live' = 외부 API 연동됨. 화면 우측 상단에 표시해 디버깅에 씁니다 */
   mode: 'mock' | 'live';
-  origin: { label: string; location: LatLng } | null;
+  origin: {
+    /** 사용자가 입력한 문자열 */
+    label: string;
+    location: LatLng;
+    /** false면 좌표를 못 찾아 기본 출발지로 계산했다는 뜻 — 화면에 알려야 합니다 */
+    resolved: boolean;
+    /** resolved=false일 때 실제로 계산에 쓴 출발지 이름 */
+    usedLabel?: string;
+  } | null;
+  /** 조건에 맞는 전체 건수 (limit 적용 전) */
   total: number;
+  /** 이번 응답에 담긴 건수 상한 */
+  limit: number;
+  /** 더 불러올 게 남았는지 — '더 보기' 버튼 표시에 씁니다 */
+  hasMore: boolean;
   items: JobResult[];
 }
