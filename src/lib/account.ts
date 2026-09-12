@@ -280,9 +280,7 @@ function randomSalt() {
 
 /* ?? ?낅젰 寃利?????????????????????????????????????????????? */
 
-export const USER_ID_RULE = '?곷Ц쨌?レ옄쨌諛묒쨪 4~20??;
-export const PASSWORD_RULE = '6???댁긽';
-
+export const USER_ID_RULE = '영문·숫자·밑줄 4~20자';`r`nexport const PASSWORD_RULE = '6자 이상';`r`n
 export function validateUserId(userId: string): string | null {
   const v = userId.trim();
   if (!v) return '?꾩씠?붾? ?낅젰??二쇱꽭??';
@@ -504,4 +502,5 @@ export function removeMyJob(id: string) {
 export function setPreferences(next: Partial<Pick<Preferences, 'hours' | 'mode'>>) {
   updateData((d) => ({ ...d, prefs: { ...d.prefs, ...next } }));
 }
+
 
