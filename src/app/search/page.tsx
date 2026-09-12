@@ -10,7 +10,7 @@
 
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { JobsResponse, SortKey, TransportMode } from '@/types';
 import JobCard from '@/components/JobCard';
 import SortToggle from '@/components/SortToggle';
@@ -39,15 +39,16 @@ export default function SearchPage() {
 
 function SearchResults() {
   const sp = useSearchParams();
+  const router = useRouter();
   const origin = sp.get('origin') ?? '신촌역';
   const keyword = sp.get('keyword') ?? '';
   const mode = (sp.get('mode') as TransportMode) ?? 'TRANSIT';
+  // 근무시간은 URL이 기준입니다. 그래야 새로고침하거나 상세를 다녀와도 값이 유지됩니다
+  const hours = Number(sp.get('hours')) || 5;
 
-  const [hours, setHours] = useState(Number(sp.get('hours')) || 5);
   const [sort, setSort] = useState<SortKey>('REAL_WAGE');
   const [ownerOnly, setOwnerOnly] = useState(false);
   const [aboveMinimumWage, setAboveMinimumWage] = useState(false);
-  const [limit, setLimit] = useState(PAGE_SIZE);
 
   const [data, setData] = useState<JobsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,10 +62,17 @@ function SearchResults() {
     [origin, keyword, hours, mode],
   );
 
-  // 조건이 바뀌면 '더 보기'로 늘려둔 건수를 처음으로 되돌립니다
-  useEffect(() => {
-    setLimit(PAGE_SIZE);
-  }, [query, sort, ownerOnly, aboveMinimumWage]);
+  // 조건이 바뀌면 '더 보기'로 늘려둔 건수를 처음으로 되돌립니다.
+  // 되돌리기를 effect로 하면 요청이 두 번 나가므로, 조건을 키로 삼아 렌더 중에 계산합니다
+  const listKey = `${query}|${sort}|${ownerOnly}|${aboveMinimumWage}`;
+  const [page, setPage] = useState({ key: listKey, limit: PAGE_SIZE });
+  const limit = page.key === listKey ? page.limit : PAGE_SIZE;
+
+  function changeHours(v: number) {
+    const next = new URLSearchParams(sp.toString());
+    next.set('hours', String(v));
+    router.replace(`/search?${next}`, { scroll: false });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -167,7 +175,7 @@ function SearchResults() {
           하루
           <select
             value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
+            onChange={(e) => changeHours(Number(e.target.value))}
             aria-label="하루 근무시간"
             className="rounded-md border border-gray-300 px-1.5 py-1 text-[11px] tnum"
           >
@@ -243,7 +251,7 @@ function SearchResults() {
 
           {data.hasMore && (
             <button
-              onClick={() => setLimit((v) => v + PAGE_SIZE)}
+              onClick={() => setPage({ key: listKey, limit: limit + PAGE_SIZE })}
               disabled={loading}
               className="mt-4 w-full rounded-lg border border-gray-300 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50"
             >
