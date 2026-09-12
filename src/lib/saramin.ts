@@ -46,7 +46,6 @@ export async function fetchSaraminJobs(q: SaraminQuery): Promise<Job[]> {
       `&start=0`;
 
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(10000),
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(10000),
     });
