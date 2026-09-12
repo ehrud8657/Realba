@@ -2,21 +2,20 @@
  * 하단 탭바 (Figma 시안 '하단바')
  *
  * Plus는 간편 실질시급 계산기로, My Page는 마이페이지로 연결합니다.
+ * 사장님 공고 등록은 마이페이지의 '+ 공고 등록' 버튼으로 들어갑니다
+ * (탭 하나에 계산기와 공고 등록을 계정에 따라 다르게 붙이면 헷갈립니다).
  */
 
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAccount } from '@/lib/useAccount';
 
 type Tab = {
   href: string;
   label: string;
   icon: React.ReactNode;
   ready: boolean;
-  /** 사장님 계정일 때만 열리는 탭 */
-  ownerOnly?: boolean;
   /** 이 경로들에서 활성으로 봅니다 */
   match?: (path: string) => boolean;
 };
@@ -74,14 +73,12 @@ const TABS: Tab[] = [
 
 export default function BottomNav() {
   const pathname = usePathname() ?? '/';
-  const { profile } = useAccount();
-  const isOwner = profile?.role === 'OWNER';
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-line bg-white/95 backdrop-blur">
       <ul className="flex">
         {TABS.map((tab) => {
-          const ready = tab.ready || (tab.ownerOnly === true && isOwner);
+          const ready = tab.ready;
           const active = ready && (tab.match?.(pathname) ?? false);
 
           const inner = (
