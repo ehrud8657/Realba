@@ -8,12 +8,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAccount } from '@/lib/useAccount';
 
 type Tab = {
   href: string;
   label: string;
   icon: React.ReactNode;
   ready: boolean;
+  /** 사장님 계정일 때만 열리는 탭 */
+  ownerOnly?: boolean;
   /** 이 경로들에서 활성으로 봅니다 */
   match?: (path: string) => boolean;
 };
@@ -71,12 +74,15 @@ const TABS: Tab[] = [
 
 export default function BottomNav() {
   const pathname = usePathname() ?? '/';
+  const { profile } = useAccount();
+  const isOwner = profile?.role === 'OWNER';
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-md border-t border-line bg-white/95 backdrop-blur">
       <ul className="flex">
         {TABS.map((tab) => {
-          const active = tab.ready && (tab.match?.(pathname) ?? false);
+          const ready = tab.ready || (tab.ownerOnly === true && isOwner);
+          const active = ready && (tab.match?.(pathname) ?? false);
 
           const inner = (
             <span className="flex flex-col items-center gap-0.5 py-2">
@@ -90,7 +96,7 @@ export default function BottomNav() {
 
           return (
             <li key={tab.label} className="flex-1">
-              {tab.ready ? (
+              {ready ? (
                 <Link
                   href={tab.href}
                   aria-current={active ? 'page' : undefined}
@@ -102,8 +108,8 @@ export default function BottomNav() {
                 <button
                   type="button"
                   disabled
-                  aria-label={`${tab.label} — 준비 중`}
-                  title="준비 중입니다"
+                  aria-label={`${tab.label} — 사장님 계정 전용`}
+                  title="사장님 계정으로 로그인하면 공고를 올릴 수 있어요"
                   className="block w-full cursor-default text-gray-300"
                 >
                   {inner}

@@ -17,6 +17,7 @@ import {
   defaultOrigin,
   isUserIdTaken,
   removeFavorite,
+  removeMyJob,
   removePlace,
   setDefaultPlace,
   setPreferences,
@@ -395,8 +396,10 @@ function LocalNotice() {
 
 function Profile() {
   const account = useAccount();
-  const { profile, favorites, places, prefs } = account;
+  const { profile, favorites, places, prefs, myJobs } = account;
   if (!profile) return null;
+
+  const isOwner = profile.role === 'OWNER';
 
   const origin = defaultOrigin(account) ?? '신촌역';
   const searchQuery = new URLSearchParams({
@@ -434,6 +437,60 @@ function Profile() {
         <p className="mt-4 rounded-card bg-blue-50 px-4 py-3 text-[12px] text-brand tnum">
           찜한 공고 {withSnapshot.length}건의 평균 실질시급은 <b>{won(avgReal)}</b>이에요.
         </p>
+      )}
+
+      {/* ── 내가 올린 공고 (사장님 계정만) ── */}
+      {isOwner && (
+        <>
+          <div className="mb-2.5 mt-7 flex items-center">
+            <h2 className="text-[13px] font-bold text-ink">📢 내가 올린 공고 ({myJobs.length})</h2>
+            <Link
+              href="/employer/new"
+              className="ml-auto rounded-lg bg-brand px-3 py-1.5 text-[12px] font-bold text-white"
+            >
+              + 공고 등록
+            </Link>
+          </div>
+
+          {myJobs.length === 0 ? (
+            <div className="rounded-card border border-line p-4 text-[12px] text-ink-soft">
+              아직 올린 공고가 없어요. 등록하면 내 검색 결과에 함께 나와서, 구직자에게 실질시급이
+              얼마로 보이는지 확인할 수 있습니다.
+            </div>
+          ) : (
+            <ul className="space-y-2.5">
+              {myJobs.map((j) => (
+                <li key={j.id} className="rounded-card border border-line p-4">
+                  <div className="flex items-start gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-bold leading-snug text-ink">{j.title}</div>
+                      <div className="mt-0.5 text-[12px] text-ink-soft">
+                        {j.companyName} · {j.address}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeMyJob(j.id)}
+                      aria-label={`${j.title} 삭제`}
+                      className="text-[12px] text-ink-soft"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-ink-soft tnum">
+                    <span>시급 {won(j.hourlyWage)}</span>
+                    <span>
+                      ⏱ {j.workTime ?? ''} ({j.dailyWorkHours}시간)
+                    </span>
+                    {j.workDays && <span>{j.workDays}</span>}
+                    {j.transportSubsidyPerDay > 0 && (
+                      <span className="text-brand">교통비 {won(j.transportSubsidyPerDay)} 지원</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       )}
 
       {/* ── 찜한 공고 ── */}

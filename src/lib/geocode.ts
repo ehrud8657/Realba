@@ -54,6 +54,46 @@ function osmThrottled<T>(task: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/** 서울 대략 범위 — 질의에 '서울'이 들어 있으면 결과도 서울 안이어야 합니다 */
+const SEOUL_BOUNDS = { minLat: 37.41, maxLat: 37.72, minLng: 126.75, maxLng: 127.2 };
+
+/** 지역 전체를 가리키는 매치 — "서울 ○○○" 같은 질의가 서울시청으로 잡히는 걸 막습니다 */
+const COARSE_TYPES = new Set([
+  'country',
+  'state',
+  'province',
+  'region',
+  'city',
+  'county',
+  'municipality',
+  'metropolitan_city',
+]);
+
+/**
+ * OSM이 돌려준 결과를 믿어도 되는지 봅니다.
+ * 지도 검색은 못 찾으면 빈손으로 오는 게 아니라 '비슷한 큰 지역'을 주기도 합니다.
+ * 그대로 쓰면 엉터리 주소가 서울시청으로, 서울 주소가 충청도로 계산됩니다.
+ */
+function isPlausibleMatch(query: string, hit: PlaceSuggestion): boolean {
+  const words = query.trim().split(/\s+/).filter(Boolean);
+
+  // 두 단어 이상으로 물었는데 시·도 단위가 돌아오면 못 찾은 것으로 봅니다
+  if (words.length >= 2 && hit.kind && COARSE_TYPES.has(hit.kind)) return false;
+
+  // 서울을 물었으면 서울 안이어야 합니다
+  if (/서울/.test(query)) {
+    const { lat, lng } = hit.location;
+    const inSeoul =
+      lat >= SEOUL_BOUNDS.minLat &&
+      lat <= SEOUL_BOUNDS.maxLat &&
+      lng >= SEOUL_BOUNDS.minLng &&
+      lng <= SEOUL_BOUNDS.maxLng;
+    if (!inSeoul) return false;
+  }
+
+  return true;
+}
+
 async function osmSearch(query: string, limit: number): Promise<PlaceSuggestion[]> {
   return osmThrottled(async () => {
     try {
@@ -74,6 +114,7 @@ async function osmSearch(query: string, limit: number): Promise<PlaceSuggestion[
           // "안암동, 성북구, 서울특별시, 대한민국" → "성북구 서울특별시" 정도만 보조로 보여줍니다
           address: parts.slice(1, 3).reverse().join(' ') || undefined,
           location: { lat: Number(d.lat), lng: Number(d.lon) },
+          kind: (d.addresstype as string) ?? (d.type as string) ?? undefined,
         };
       });
     } catch {
@@ -98,10 +139,14 @@ export async function geocode(query: string): Promise<LatLng | null> {
   }
   if (!result) {
     // 카카오 키가 없거나 못 찾았을 때 — 키 없이도 지도에 있는 곳이면 찾아냅니다
-    result = (await osmSearch(key, 1))[0]?.location ?? null;
+    const osm = (await osmSearch(key, 1))[0];
+    result = osm && isPlausibleMatch(key, osm) ? osm.location : null;
   }
 
-  cache.set(key, result);
+  // ★ 실패는 캐시하지 않습니다.
+  //   네트워크가 한 번 튀어서 못 찾은 주소를 영구히 '없는 주소'로 굳히면,
+  //   서버가 살아 있는 동안 그 주소는 계속 실패합니다 (실제로 이 사고가 났습니다)
+  if (result) cache.set(key, result);
   return result;
 }
 
@@ -316,6 +361,8 @@ export interface PlaceSuggestion {
   /** 보조로 보여주는 주소. 없을 수도 있습니다 */
   address?: string;
   location: LatLng;
+  /** OSM이 알려주는 장소 종류 (city·suburb·building…). 결과 타당성 검사에 씁니다 */
+  kind?: string;
 }
 
 /**
