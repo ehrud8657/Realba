@@ -52,6 +52,28 @@ export interface FavoriteJob {
   } | null;
 }
 
+/**
+ * 사장님이 직접 올린 공고.
+ * 좌표는 저장하지 않고, 검색·미리보기 때 서버가 주소를 지오코딩합니다
+ * (→ src/app/api/jobs/preview/route.ts)
+ */
+export interface OwnerJobDraft {
+  id: string;
+  title: string;
+  companyName: string;
+  address: string;
+  hourlyWage: number;
+  dailyWorkHours: number;
+  /** "09:00 ~ 14:00" */
+  workTime?: string;
+  /** "월~금" */
+  workDays?: string;
+  /** 하루 교통비 지원액(원) */
+  transportSubsidyPerDay: number;
+  postedAt: string;
+  deadline?: string;
+}
+
 /** 집·학교처럼 별칭을 붙여 저장해 둔 출발지 */
 export interface SavedPlace {
   id: string;
@@ -71,6 +93,8 @@ interface UserData {
   favorites: FavoriteJob[];
   places: SavedPlace[];
   prefs: Preferences;
+  /** 사장님 계정이 올린 공고 */
+  myJobs: OwnerJobDraft[];
 }
 
 /** localStorage에 실제로 들어가는 모양 */
@@ -97,13 +121,14 @@ export interface AccountState {
   favorites: FavoriteJob[];
   places: SavedPlace[];
   prefs: Preferences;
+  myJobs: OwnerJobDraft[];
   rememberedUserId: string | null;
   /** 이 기기에 저장된 계정 수 (로그인 안내에 씁니다) */
   accountCount: number;
 }
 
 const EMPTY_PREFS: Preferences = { hours: 5, mode: 'TRANSIT', defaultPlaceId: null };
-const EMPTY_DATA: UserData = { favorites: [], places: [], prefs: EMPTY_PREFS };
+const EMPTY_DATA: UserData = { favorites: [], places: [], prefs: EMPTY_PREFS, myJobs: [] };
 
 export const EMPTY_STATE: AccountState = {
   profile: null,
@@ -164,6 +189,7 @@ function dataOf(p: Persisted, key = currentKey(p)): UserData {
     favorites: d?.favorites ?? [],
     places: d?.places ?? [],
     prefs: { ...EMPTY_PREFS, ...(d?.prefs ?? {}) },
+    myJobs: d?.myJobs ?? [],
   };
 }
 
@@ -416,6 +442,30 @@ export function setDefaultPlace(id: string | null) {
 export function defaultOrigin(state: AccountState = readAccount()): string | null {
   const place = state.places.find((p) => p.id === state.prefs.defaultPlaceId);
   return place?.query ?? null;
+}
+
+/* ── 사장님 공고 ─────────────────────────────────────────── */
+
+export function addMyJob(job: Omit<OwnerJobDraft, 'id' | 'postedAt'>): OwnerJobDraft {
+  const created: OwnerJobDraft = {
+    ...job,
+    // 목데이터 id(o1, s1…)와 겹치지 않게 접두사를 붙입니다
+    id: `my-${Date.now().toString(36)}`,
+    postedAt: new Date().toISOString().slice(0, 10),
+  };
+  updateData((d) => ({ ...d, myJobs: [created, ...d.myJobs] }));
+  return created;
+}
+
+export function updateMyJob(id: string, patch: Partial<OwnerJobDraft>) {
+  updateData((d) => ({
+    ...d,
+    myJobs: d.myJobs.map((j) => (j.id === id ? { ...j, ...patch, id: j.id } : j)),
+  }));
+}
+
+export function removeMyJob(id: string) {
+  updateData((d) => ({ ...d, myJobs: d.myJobs.filter((j) => j.id !== id) }));
 }
 
 /* ── 기본 검색 조건 ──────────────────────────────────────── */

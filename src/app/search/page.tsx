@@ -17,6 +17,8 @@ import SortToggle from '@/components/SortToggle';
 import EmptyState from '@/components/EmptyState';
 import { minimumWage } from '@/lib/minimumWage';
 import { won } from '@/lib/format';
+import { useAccount } from '@/lib/useAccount';
+import type { JobResult } from '@/types';
 
 const PAGE_SIZE = 10;
 
@@ -53,6 +55,10 @@ function SearchResults() {
   const [data, setData] = useState<JobsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 사장님 계정이 올린 공고는 서버에 없으므로, 계산만 받아 와서 목록에 끼워 넣습니다
+  const { myJobs } = useAccount();
+  const [myResults, setMyResults] = useState<JobResult[]>([]);
 
   const filtered = ownerOnly || aboveMinimumWage;
 
@@ -106,12 +112,75 @@ function SearchResults() {
     };
   }, [query, sort, limit, ownerOnly, aboveMinimumWage]);
 
+  useEffect(() => {
+    if (myJobs.length === 0) {
+      setMyResults([]);
+      return;
+    }
+
+    let cancelled = false;
+    fetch('/api/jobs/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobs: myJobs, origin, hours, mode }),
+      signal: AbortSignal.timeout(15000),
+    })
+      .then((r) => r.json())
+      .then((json) => !cancelled && setMyResults((json.items ?? []) as JobResult[]))
+      .catch(() => !cancelled && setMyResults([]));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [myJobs, origin, hours, mode]);
+
   function resetFilters() {
     setOwnerOnly(false);
     setAboveMinimumWage(false);
   }
 
   const showSkeleton = loading && !data;
+
+  /** 서버 공고 + 내가 올린 공고를 합쳐 현재 정렬 기준으로 다시 세웁니다 */
+  const items = useMemo(() => {
+    if (!data) return [];
+
+    const k = keyword.trim().toLowerCase();
+    // 내 공고도 사장님 공고라서 '사장님공고만' 필터는 통과합니다.
+    // 키워드·최저임금 필터는 서버가 못 보므로 여기서 직접 겁니다
+    const mine = myResults.filter((item) => {
+      if (aboveMinimumWage && item.job.hourlyWage < minimumWage()) return false;
+      if (!k) return true;
+      return (
+        item.job.title.toLowerCase().includes(k) ||
+        item.job.companyName.toLowerCase().includes(k) ||
+        item.job.address.toLowerCase().includes(k)
+      );
+    });
+
+    if (mine.length === 0) return data.items;
+
+    const merged = [...mine, ...data.items];
+    merged.sort((a, b) => {
+      if (!a.calc && !b.calc) return 0;
+      if (!a.calc) return 1;
+      if (!b.calc) return -1;
+
+      switch (sort) {
+        case 'NOMINAL_WAGE':
+          return b.calc.nominalHourlyWage - a.calc.nominalHourlyWage;
+        case 'COMMUTE':
+          return (a.route?.oneWayMinutes ?? 999) - (b.route?.oneWayMinutes ?? 999);
+        case 'LOSS_RATE':
+          return a.calc.lossRate - b.calc.lossRate;
+        case 'RECENT':
+          return (b.job.postedAt ?? '').localeCompare(a.job.postedAt ?? '');
+        default:
+          return b.calc.realHourlyWage - a.calc.realHourlyWage;
+      }
+    });
+    return merged;
+  }, [data, myResults, sort, keyword, ownerOnly, aboveMinimumWage]);
 
   return (
     <main className="px-5 pb-16 pt-5">
@@ -214,7 +283,7 @@ function SearchResults() {
         </div>
       )}
 
-      {data && !error && data.items.length === 0 && (
+      {data && !error && items.length === 0 && (
         <EmptyState
           title="조건에 맞는 공고가 없어요."
           description={
@@ -236,15 +305,16 @@ function SearchResults() {
         />
       )}
 
-      {data && !error && data.items.length > 0 && (
+      {data && !error && items.length > 0 && (
         <div className={loading ? 'opacity-50 transition-opacity' : 'transition-opacity'}>
           <p className="mt-3 text-xs text-gray-500">
-            총 <b className="tnum">{data.total}</b>건 중 <b className="tnum">{data.items.length}</b>
-            건
+            총 <b className="tnum">{data.total + myResults.length}</b>건 중{' '}
+            <b className="tnum">{items.length}</b>건
+            {myResults.length > 0 && ` · 내 공고 ${myResults.length}건 포함`}
             {aboveMinimumWage && ` · ${won(minimumWage())} 이상만`}
           </p>
           <div className="mt-3 space-y-3">
-            {data.items.map((item, i) => (
+            {items.map((item, i) => (
               <JobCard
                 key={item.job.id}
                 item={item}
