@@ -19,6 +19,9 @@ export default function CalcBreakdown({ calc }: { calc: Calc }) {
         label={`${won(calc.nominalHourlyWage)} × ${workHours}시간`}
         value={won(Math.round(workPay))}
       />
+      {calc.includesWeeklyHolidayPay && (
+        <Row label="+ 주휴수당 (하루치)" value={`+${won(calc.dailyHolidayPay)}`} />
+      )}
       <Row label="− 왕복 교통비" value={`−${won(calc.dailyCommuteCost)}`} />
       <Divider />
       <Row label="실수령" value={won(calc.dailyNetPay)} strong />

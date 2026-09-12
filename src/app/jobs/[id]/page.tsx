@@ -2,8 +2,11 @@
  * S-03 공고 상세 — 계산 과정 + 조건 바꿔보기
  * 소유자: C (프론트 — 상세)
  *
- * 근무시간 슬라이더는 서버에 다시 묻지 않고 lib/calc.ts 로 그 자리에서 다시 계산합니다.
- * (그래서 슬라이더를 움직이면 숫자가 즉시 반응합니다 — 데모에서 잘 먹힙니다)
+ * 조건(근무시간·교통비 지원·주휴수당)은 서버에 다시 묻지 않고 lib/calc.ts로 그 자리에서
+ * 다시 계산합니다. (그래서 슬라이더를 움직이면 숫자가 즉시 반응합니다 — 데모에서 잘 먹힙니다)
+ *
+ * 검색 조건(출발지·이동수단·근무시간)은 URL로 받아 그대로 API에 넘깁니다.
+ * 이동수단을 빠뜨리면 목록과 상세의 숫자가 달라집니다. 주의하세요.
  */
 
 'use client';
@@ -11,10 +14,34 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import type { JobResult, JobsResponse } from '@/types';
+import type { JobResult, JobsResponse, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
-import { LOSS_STYLE, lossLevel, minutes, percent, won } from '@/lib/format';
+import { LOSS_STYLE, lossLevel, percent, won } from '@/lib/format';
+import { isBelowMinimumWage, minimumWage } from '@/lib/minimumWage';
 import CalcBreakdown from '@/components/CalcBreakdown';
+import RouteSummary from '@/components/RouteSummary';
+import WorkHoursSlider from '@/components/WorkHoursSlider';
+import SourceBadge from '@/components/SourceBadge';
+import EstimatedTag from '@/components/EstimatedTag';
+import EmptyState from '@/components/EmptyState';
+import { MinimumWageWarning } from '@/components/RealWageBadge';
+
+/** 교통비 지원 선택지 */
+const SUBSIDY_PRESETS = [0, 1000, 2000, 3000];
+
+/** 공고의 실제 지원액이 보기에 없으면 그 값을 항목으로 추가합니다 (빈 셀렉트 방지) */
+function subsidyOptions(jobSubsidy: number) {
+  const amounts = SUBSIDY_PRESETS.includes(jobSubsidy)
+    ? SUBSIDY_PRESETS
+    : [...SUBSIDY_PRESETS, jobSubsidy].sort((a, b) => a - b);
+  return [
+    ...amounts.map((v) => ({
+      value: String(v),
+      label: v === 0 ? '없음' : `일 ${v.toLocaleString('ko-KR')}원`,
+    })),
+    { value: 'FULL', label: '실비 전액' },
+  ];
+}
 
 export default function JobDetailPage() {
   return (
@@ -31,30 +58,59 @@ function JobDetail() {
   const origin = sp.get('origin') ?? '신촌역';
   const keyword = sp.get('keyword') ?? '';
   const baseHours = Number(sp.get('hours')) || 5;
+  const mode = (sp.get('mode') as TransportMode) ?? 'TRANSIT';
 
   const [item, setItem] = useState<JobResult | null>(null);
   const [notFound, setNotFound] = useState(false);
+
+  // ── 조건 바꿔보기 상태 ──────────────────────────────
   const [hours, setHours] = useState(baseHours);
+  const [subsidy, setSubsidy] = useState<string | null>(null); // null = 공고 값 그대로
+  const [holidayPay, setHolidayPay] = useState(false);
+  const [weeklyHours, setWeeklyHours] = useState(baseHours * 5);
 
   useEffect(() => {
-    const q = new URLSearchParams({ origin, keyword, hours: String(baseHours) });
-      fetch(`/api/jobs?${q}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
+    const q = new URLSearchParams({
+      origin,
+      keyword,
+      hours: String(baseHours),
+      mode,
+      id: params.id,
+    });
+
+    fetch(`/api/jobs?${q}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
       .then((r) => r.json())
       .then((json: JobsResponse) => {
         const found = json.items.find((x) => x.job.id === params.id);
-        if (found) setItem(found);
-        else setNotFound(true);
+        if (found) {
+          setItem(found);
+          setSubsidy(String(found.job.transportSubsidyPerDay ?? 0));
+        } else {
+          setNotFound(true);
+        }
       })
       .catch(() => setNotFound(true));
-  }, [params.id, origin, keyword, baseHours]);
+  }, [params.id, origin, keyword, baseHours, mode]);
+
+  const searchQuery = new URLSearchParams({
+    origin,
+    keyword,
+    hours: String(baseHours),
+    mode,
+  }).toString();
 
   if (notFound) {
     return (
       <main className="p-5">
-        <p className="text-sm text-gray-500">공고를 찾을 수 없어요.</p>
-        <Link href="/" className="mt-3 inline-block text-sm font-semibold text-brand">
-          홈으로
-        </Link>
+        <EmptyState
+          title="공고를 찾을 수 없어요."
+          description="목록으로 돌아가 다른 공고를 확인해 보세요."
+          action={
+            <Link href={`/search?${searchQuery}`} className="text-sm font-semibold text-brand">
+              검색 결과로
+            </Link>
+          }
+        />
       </main>
     );
   }
@@ -63,24 +119,34 @@ function JobDetail() {
 
   const { job, route } = item;
 
-  // 슬라이더 값으로 그 자리에서 다시 계산 (서버에 다시 묻지 않습니다)
-  const calc = calcForJob(job, route, hours);
+  // 슬라이더·셀렉트 값으로 그 자리에서 다시 계산 (서버에 다시 묻지 않습니다)
+  const calc = calcForJob(job, route, {
+    hours,
+    subsidyPerDay: subsidy === 'FULL' ? 0 : Number(subsidy ?? 0),
+    fullFareSubsidy: subsidy === 'FULL',
+    includeWeeklyHolidayPay: holidayPay,
+    weeklyWorkHours: weeklyHours,
+  });
 
-  const searchQuery = new URLSearchParams({ origin, keyword, hours: String(baseHours) }).toString();
+  const dday = daysUntil(job.deadline);
 
   return (
     <main className="px-5 pb-16 pt-5">
-      <Link href={`/search?${searchQuery}`} className="text-lg text-gray-400">
-        ←
-      </Link>
+      <div className="flex items-center">
+        <Link href={`/search?${searchQuery}`} className="text-lg text-gray-400" aria-label="검색 결과로">
+          ←
+        </Link>
+        <ShareButton title={job.title} />
+      </div>
 
       <div className="mt-3">
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
-            job.source === 'OWNER' ? 'border-brand text-brand' : 'border-gray-300 text-gray-500'
-          }`}
-        >
-          {job.source === 'OWNER' ? '사장님공고' : '사람인'}
+        <span className="inline-flex items-center gap-1.5">
+          <SourceBadge source={job.source} />
+          {dday !== null && (
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 tnum">
+              {dday > 0 ? `D-${dday}` : dday === 0 ? '오늘 마감' : '마감됨'}
+            </span>
+          )}
         </span>
         <h1 className="mt-2 text-lg font-bold leading-snug">{job.title}</h1>
         <p className="mt-1 text-xs text-gray-500">
@@ -92,7 +158,12 @@ function JobDetail() {
         <>
           <div className="mt-5 rounded-xl border-2 border-gray-900 p-4 text-center">
             <div className="text-xs text-gray-500">실질시급</div>
-            <div className="mt-1 text-3xl font-bold tnum">{won(calc.realHourlyWage)}</div>
+            <div
+              className="mt-1 text-3xl font-bold tnum"
+              aria-label={`실질시급 ${calc.realHourlyWage}원, 표시 시급 ${calc.nominalHourlyWage}원 대비 ${percent(Math.abs(calc.lossRate))} ${calc.lossRate >= 0 ? '낮음' : '높음'}`}
+            >
+              {won(calc.realHourlyWage)}
+            </div>
             <div className="mt-1 text-xs text-gray-500 tnum">
               표시 시급 {won(calc.nominalHourlyWage)} 대비
             </div>
@@ -101,29 +172,101 @@ function JobDetail() {
                 LOSS_STYLE[lossLevel(calc.lossRate)]
               }`}
             >
-              −{won(calc.nominalHourlyWage - calc.realHourlyWage)} ({percent(calc.lossRate)})
+              {calc.lossRate >= 0 ? '−' : '+'}
+              {won(Math.abs(calc.nominalHourlyWage - calc.realHourlyWage))} (
+              {percent(Math.abs(calc.lossRate))})
             </div>
+            {calc.includesWeeklyHolidayPay && (
+              <div className="mt-1 text-[11px] text-gray-500">주휴수당 포함 기준</div>
+            )}
+            {(isBelowMinimumWage(job.hourlyWage) || calc.realHourlyWage < minimumWage()) && (
+              <div>
+                <MinimumWageWarning wageBelowMinimum={isBelowMinimumWage(job.hourlyWage)} />
+              </div>
+            )}
           </div>
 
           <h2 className="mb-2 mt-6 text-sm font-bold">계산 과정</h2>
           <CalcBreakdown calc={calc} />
 
           <h2 className="mb-2 mt-6 text-sm font-bold">조건 바꿔보기</h2>
-          <div className="rounded-xl border border-gray-200 p-4">
-            <label className="mb-1.5 block text-xs font-semibold text-gray-700">
-              하루 근무시간 — <span className="tnum">{hours.toFixed(1)}</span>시간
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={12}
-              step={0.5}
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
-              className="w-full accent-brand"
-            />
-            <p className="mt-2 text-[11px] text-gray-400">
-              슬라이더를 움직이면 위 숫자가 바로 다시 계산됩니다.
+          <div className="space-y-4 rounded-xl border border-gray-200 p-4">
+            <WorkHoursSlider value={hours} onChange={setHours} />
+
+            <div>
+              <label
+                htmlFor="subsidy-select"
+                className="mb-1.5 block text-xs font-semibold text-gray-700"
+              >
+                교통비 지원
+              </label>
+              <select
+                id="subsidy-select"
+                value={subsidy ?? '0'}
+                onChange={(e) => setSubsidy(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm tnum"
+              >
+                {subsidyOptions(job.transportSubsidyPerDay ?? 0).map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <label htmlFor="holiday-toggle" className="text-xs font-semibold text-gray-700">
+                  주휴수당 포함
+                </label>
+                <button
+                  id="holiday-toggle"
+                  type="button"
+                  role="switch"
+                  aria-checked={holidayPay}
+                  onClick={() => setHolidayPay((v) => !v)}
+                  className={`h-6 w-11 rounded-full transition ${
+                    holidayPay ? 'bg-brand' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`block h-5 w-5 rounded-full bg-white transition ${
+                      holidayPay ? 'translate-x-[22px]' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {holidayPay && (
+                <div className="mt-2">
+                  <label
+                    htmlFor="weekly-hours"
+                    className="mb-1 block text-[11px] font-semibold text-gray-600"
+                  >
+                    주 소정근로시간
+                  </label>
+                  <input
+                    id="weekly-hours"
+                    type="number"
+                    min={1}
+                    max={60}
+                    step={0.5}
+                    value={weeklyHours}
+                    onChange={(e) => setWeeklyHours(Number(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm tnum"
+                  />
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    주 15시간 이상일 때만 주휴수당이 발생합니다.
+                    {weeklyHours > 0 && weeklyHours < 15 && (
+                      <span className="text-bad"> 지금 값으로는 발생하지 않아요.</span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-gray-400">
+              값을 바꾸면 위 숫자가 바로 다시 계산됩니다.
             </p>
           </div>
         </>
@@ -132,42 +275,27 @@ function JobDetail() {
       )}
 
       <h2 className="mb-2 mt-6 text-sm font-bold">이동 경로</h2>
-      <div className="rounded-xl border border-gray-200 p-4 text-sm tnum">
-        {route ? (
-          <>
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">편도 소요시간</span>
-              <span>{minutes(route.oneWayMinutes)}</span>
-            </div>
-            <div className="flex justify-between py-0.5">
-              <span className="text-gray-600">편도 요금</span>
-              <span>{won(route.oneWayFare)}</span>
-            </div>
-            <div className="flex justify-between py-0.5 font-semibold">
-              <span>왕복 합계</span>
-              <span>
-                {minutes(route.oneWayMinutes * 2)} · {won(route.oneWayFare * 2)}
-              </span>
-            </div>
-          </>
-        ) : (
-          <span className="text-gray-500">경로 정보 없음</span>
-        )}
-      </div>
+      <RouteSummary
+        route={route}
+        mode={mode}
+        subsidyPerDay={subsidy === 'FULL' ? (route?.oneWayFare ?? 0) * 2 : Number(subsidy ?? 0)}
+      />
 
       <h2 className="mb-2 mt-6 text-sm font-bold">공고 정보</h2>
       <div className="rounded-xl border border-gray-200 p-4 text-sm">
-        <Info label="근무시간" value={`${job.dailyWorkHours}시간`} tag={job.hoursIsEstimated ? '추정' : '확정'} />
         <Info label="시급" value={won(job.hourlyWage)} />
+        <Info label="하루 근무시간" value={`${hours}시간`} />
+        {job.workTime && <Info label="근무 시간대" value={job.workTime} />}
+        {job.workDays && <Info label="근무 요일" value={job.workDays} />}
+        {job.employmentType && <Info label="고용형태" value={job.employmentType} />}
+        {job.deadline && <Info label="마감일" value={job.deadline} />}
         <Info label="근무지" value={job.address} />
-      </div>
 
-      {job.hoursIsEstimated && (
-        <p className="mt-3 rounded-lg bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-500">
-          ⓘ 사람인 공고는 근무시간 정보를 제공하지 않아, 검색할 때 입력한 값으로 계산했습니다.
-          사장님이 직접 등록한 공고는 근무시간이 확정값이라 더 정확합니다.
-        </p>
-      )}
+        <div className="mt-2 border-t border-gray-100 pt-2 text-right">
+          <span className="text-xs text-gray-600">근무시간 정확도</span>
+          <EstimatedTag estimated={job.hoursIsEstimated} expandable />
+        </div>
+      </div>
 
       {job.url && (
         <a
@@ -183,22 +311,50 @@ function JobDetail() {
   );
 }
 
-function Info({ label, value, tag }: { label: string; value: string; tag?: string }) {
+/** 공유 — 폰에서는 공유 시트, 데스크톱에서는 링크 복사 */
+function ShareButton({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    const url = typeof window === 'undefined' ? '' : window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: `리알바 — ${title}`, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // 사용자가 공유를 취소한 경우 — 아무것도 하지 않습니다
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={share}
+      aria-label="공고 공유하기"
+      className="ml-auto text-xs font-semibold text-gray-500"
+    >
+      {copied ? '링크 복사됨' : '⇪ 공유'}
+    </button>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between py-1">
       <span className="text-gray-600">{label}</span>
-      <span className="tnum">
-        {value}
-        {tag && (
-          <span
-            className={`ml-1.5 rounded px-1 text-[10px] ${
-              tag === '확정' ? 'bg-blue-50 text-brand' : 'bg-gray-100 text-gray-500'
-            }`}
-          >
-            {tag}
-          </span>
-        )}
-      </span>
+      <span className="tnum">{value}</span>
     </div>
   );
+}
+
+/** 마감일까지 남은 일수. 없으면 null */
+function daysUntil(deadline?: string): number | null {
+  if (!deadline) return null;
+  const end = new Date(`${deadline}T23:59:59`);
+  if (Number.isNaN(end.getTime())) return null;
+  return Math.ceil((end.getTime() - Date.now()) / 86_400_000) - 1;
 }

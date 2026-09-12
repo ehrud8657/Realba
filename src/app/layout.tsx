@@ -31,7 +31,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko">
       <body className="bg-gray-50 text-gray-900 antialiased">
-        <div className="mx-auto min-h-screen max-w-md bg-white shadow-sm">{children}</div>
+        <div className="mx-auto min-h-screen max-w-md bg-white shadow-sm">
+          {children}
+          {/* README §10 — 실질시급은 참고용 지표라는 고지 */}
+          <footer className="border-t border-gray-100 px-5 py-5 text-[11px] leading-relaxed text-gray-400">
+            실질시급은 교통비·이동시간을 반영한 <b>참고용 지표</b>이며 근로계약의 근거가 아닙니다.
+            이동시간과 요금은 평시 기준 추정치이고, 공고 원문은 각 출처에서 확인하세요.
+          </footer>
+        </div>
         <PwaRegister />
       </body>
     </html>
