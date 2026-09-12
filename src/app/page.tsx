@@ -15,9 +15,10 @@ export default function HomePage() {
   const [origin, setOrigin] = useState('신촌역');
   const [keyword, setKeyword] = useState('');
   const [hours, setHours] = useState(5);
+  const [mode, setMode] = useState('TRANSIT');
 
   function search() {
-    const q = new URLSearchParams({ origin, keyword, hours: String(hours) });
+    const q = new URLSearchParams({ origin, keyword, hours: String(hours), mode });
     router.push(`/search?${q}`);
   }
 
@@ -59,6 +60,14 @@ export default function HomePage() {
               >
                 {o}
               </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-gray-700">🚗 이동수단</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[['TRANSIT','대중교통'],['TAXI','택시'],['CAR','자가용']].map(([value,label]) => (
+              <button key={value} type="button" onClick={() => setMode(value)} className={`rounded-lg border px-2 py-2 text-xs font-semibold ${mode === value ? 'border-brand bg-blue-50 text-brand' : 'border-gray-300 text-gray-500'}`}>{label}</button>
             ))}
           </div>
         </div>

@@ -14,7 +14,7 @@ import type { SortKey } from '@/types';
 const OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'REAL_WAGE', label: '실질시급순' },
   { key: 'NOMINAL_WAGE', label: '시급순' },
-  { key: 'COMMUTE', label: '가까운순' },
+  { key: 'COMMUTE', label: '이동시간순' },
 ];
 
 export default function SortToggle({

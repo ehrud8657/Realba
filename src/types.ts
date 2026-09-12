@@ -7,6 +7,7 @@
  */
 
 export type JobSource = 'SARAMIN' | 'OWNER';
+export type TransportMode = 'TRANSIT' | 'TAXI' | 'CAR';
 
 /** 좌표. 카카오 API는 x=lng, y=lat 이니 주의 */
 export interface LatLng {
@@ -43,6 +44,7 @@ export interface Route {
   oneWayMinutes: number;
   /** 편도 요금(원) */
   oneWayFare: number;
+  mode?: TransportMode;
 }
 
 /** 실질시급 계산 결과 */
