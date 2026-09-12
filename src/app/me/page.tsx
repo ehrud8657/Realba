@@ -1,7 +1,7 @@
 /**
  * S-08 마이페이지
  *
- * 로그인 전에는 로그인/회원가입 안내만 보여주고, 계정이 생기면 본 화면을 보여줍니다.
+ * 로그인 전에는 회원가입/로그인 화면, 계정이 생기면 본 화면을 보여줍니다.
  * 계정·찜·출발지는 전부 이 브라우저에만 저장됩니다 (→ lib/account.ts).
  */
 
@@ -11,15 +11,20 @@ import Link from 'next/link';
 import { useState } from 'react';
 import type { TransportMode } from '@/types';
 import {
+  PASSWORD_RULE,
+  USER_ID_RULE,
   addPlace,
   defaultOrigin,
+  isUserIdTaken,
   removeFavorite,
   removePlace,
   setDefaultPlace,
   setPreferences,
+  signIn,
   signOut,
   signUp,
-  signIn,
+  validatePassword,
+  validateUserId,
   type UserRole,
 } from '@/lib/account';
 import { useAccount } from '@/lib/useAccount';
@@ -35,90 +40,187 @@ const MODES: [TransportMode, string][] = [
   ['CAR', '자가용'],
 ];
 
+const inputClass =
+  'w-full rounded-lg border border-line px-3.5 py-3 text-sm outline-none focus:border-brand';
+
 export default function MyPage() {
   const account = useAccount();
-  return account.profile ? <Profile /> : <Gate hasLocalData={account.favorites.length > 0} />;
+  return account.profile ? <Profile /> : <Gate hasGuestData={account.favorites.length > 0} />;
 }
 
 /* ── 로그인 전 ───────────────────────────────────────────── */
 
-function Gate({ hasLocalData }: { hasLocalData: boolean }) {
+function Gate({ hasGuestData }: { hasGuestData: boolean }) {
+  const { rememberedUserId, accountCount } = useAccount();
   const [tab, setTab] = useState<'SIGN_UP' | 'SIGN_IN' | null>(null);
-  const [nickname, setNickname] = useState('');
-  const [role, setRole] = useState<UserRole>('SEEKER');
 
-  if (!tab) {
+  if (tab === 'SIGN_UP') {
+    return <SignUpForm onBack={() => setTab(null)} onGoSignIn={() => setTab('SIGN_IN')} />;
+  }
+  if (tab === 'SIGN_IN') {
     return (
-      <main className="px-5 pb-16 pt-16 text-center">
-        <div className="flex justify-center">
-          <LogoMark size={64} />
-        </div>
-        <h1 className="mt-5 text-[19px] font-bold text-ink">로그인이 필요해요</h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-          로그인하면 찜한 공고와 자주 쓰는 출발지를
-          <br />
-          저장해 두고 바로 꺼내 쓸 수 있어요.
-        </p>
-
-        <button
-          onClick={() => setTab('SIGN_UP')}
-          className="mt-8 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white active:bg-brand-deep"
-        >
-          회원가입
-        </button>
-        <button
-          onClick={() => setTab('SIGN_IN')}
-          className="mt-2.5 w-full rounded-lg border border-line py-4 text-[15px] font-bold text-ink"
-        >
-          로그인
-        </button>
-
-        {hasLocalData && (
-          <p className="mt-4 text-[11px] text-ink-soft">
-            이 기기에 저장해 둔 찜이 남아 있어요. 로그인하면 다시 보입니다.
-          </p>
-        )}
-        <LocalNotice />
-      </main>
+      <SignInForm
+        onBack={() => setTab(null)}
+        onGoSignUp={() => setTab('SIGN_UP')}
+        rememberedUserId={rememberedUserId}
+        accountCount={accountCount}
+      />
     );
   }
 
-  const isSignUp = tab === 'SIGN_UP';
+  return (
+    <main className="px-5 pb-16 pt-16 text-center">
+      <div className="flex justify-center">
+        <LogoMark size={64} />
+      </div>
+      <h1 className="mt-5 text-[19px] font-bold text-ink">로그인이 필요해요</h1>
+      <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+        로그인하면 찜한 공고와 자주 쓰는 출발지를
+        <br />
+        저장해 두고 바로 꺼내 쓸 수 있어요.
+      </p>
+
+      <button
+        onClick={() => setTab('SIGN_UP')}
+        className="mt-8 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white active:bg-brand-deep"
+      >
+        회원가입
+      </button>
+      <button
+        onClick={() => setTab('SIGN_IN')}
+        className="mt-2.5 w-full rounded-lg border border-line py-4 text-[15px] font-bold text-ink"
+      >
+        로그인
+      </button>
+
+      {hasGuestData && (
+        <p className="mt-4 text-[11px] text-ink-soft">
+          로그인 전에 찜해 둔 공고가 있어요. 회원가입하면 새 계정으로 옮겨집니다.
+        </p>
+      )}
+      <LocalNotice />
+    </main>
+  );
+}
+
+function SignUpForm({ onBack, onGoSignIn }: { onBack: () => void; onGoSignIn: () => void }) {
+  const [name, setName] = useState('');
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [password2, setPassword2] = useState('');
+  const [role, setRole] = useState<UserRole>('SEEKER');
+  /** 중복확인 결과. 아이디를 다시 고치면 초기화됩니다 */
+  const [idCheck, setIdCheck] = useState<{ userId: string; available: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const checkedForCurrent = idCheck !== null && idCheck.userId === userId.trim();
+  const idOk = checkedForCurrent && idCheck.available;
+
+  function checkId() {
+    const value = userId.trim();
+    const invalid = validateUserId(value);
+    if (invalid) {
+      setIdCheck(null);
+      setError(invalid);
+      return;
+    }
+    setError(null);
+    setIdCheck({ userId: value, available: !isUserIdTaken(value) });
+  }
+
+  async function submit() {
+    setError(null);
+
+    if (!name.trim()) return setError('이름을 입력해 주세요.');
+
+    const idError = validateUserId(userId);
+    if (idError) return setError(idError);
+    if (!idOk) return setError('아이디 중복확인을 해주세요.');
+
+    const pwError = validatePassword(password);
+    if (pwError) return setError(pwError);
+    if (password !== password2) return setError('비밀번호가 서로 달라요.');
+
+    setBusy(true);
+    const result = await signUp({ name, userId, password, role });
+    setBusy(false);
+    if (!result.ok) setError(result.message);
+  }
 
   return (
     <main className="px-5 pb-16 pt-5">
-      <button onClick={() => setTab(null)} className="text-lg text-ink" aria-label="뒤로">
+      <button onClick={onBack} className="text-lg text-ink" aria-label="뒤로">
         ←
       </button>
 
-      <h1 className="mt-4 text-[19px] font-bold text-ink">{isSignUp ? '회원가입' : '로그인'}</h1>
-      <p className="mt-1.5 text-[13px] text-ink-soft">
-        {isSignUp
-          ? '닉네임만 있으면 됩니다. 비밀번호는 받지 않아요.'
-          : '이 기기에서 쓰던 닉네임을 넣어 주세요.'}
-      </p>
+      <h1 className="mt-4 text-[19px] font-bold text-ink">회원가입</h1>
+      <p className="mt-1.5 text-[13px] text-ink-soft">이 기기에 계정을 만들어 둡니다.</p>
 
-      <div className="mt-6">
-        <label htmlFor="nickname" className="mb-2 block text-[13px] font-semibold text-ink">
-          닉네임
-        </label>
-        <input
-          id="nickname"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && nickname.trim()) {
-              isSignUp ? signUp(nickname, role) : signIn(nickname);
-            }
-          }}
-          placeholder="예) 신촌알바러"
-          maxLength={20}
-          className="w-full rounded-lg border border-line px-3.5 py-3 text-sm outline-none focus:border-brand"
-        />
-      </div>
+      <div className="mt-6 space-y-4">
+        <Field label="이름">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="홍길동"
+            maxLength={20}
+            className={inputClass}
+          />
+        </Field>
 
-      {isSignUp && (
-        <div className="mt-5">
+        <div>
+          <span className="mb-2 block text-[13px] font-semibold text-ink">아이디</span>
+          <div className="flex gap-2">
+            <input
+              value={userId}
+              onChange={(e) => {
+                setUserId(e.target.value);
+                setIdCheck(null);
+              }}
+              placeholder="realba_user"
+              maxLength={20}
+              autoComplete="username"
+              className={`${inputClass} min-w-0 flex-1`}
+            />
+            <button
+              type="button"
+              onClick={checkId}
+              className="shrink-0 rounded-lg border border-line px-3 text-[13px] font-semibold text-ink"
+            >
+              중복확인
+            </button>
+          </div>
+          {checkedForCurrent ? (
+            <p className={`mt-1.5 text-[11px] ${idCheck.available ? 'text-good' : 'text-bad'}`}>
+              {idCheck.available ? '사용할 수 있는 아이디예요.' : '이미 사용 중인 아이디예요.'}
+            </p>
+          ) : (
+            <p className="mt-1.5 text-[11px] text-ink-soft">{USER_ID_RULE}</p>
+          )}
+        </div>
+
+        <Field label="비밀번호" hint={PASSWORD_RULE}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="비밀번호 확인">
+          <input
+            type="password"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            autoComplete="new-password"
+            className={inputClass}
+          />
+        </Field>
+
+        <div>
           <span className="mb-2 block text-[13px] font-semibold text-ink">어떤 분이신가요?</span>
           <div className="grid grid-cols-2 gap-2">
             {(
@@ -141,14 +243,110 @@ function Gate({ hasLocalData }: { hasLocalData: boolean }) {
             ))}
           </div>
         </div>
-      )}
+      </div>
+
+      {error && <p className="mt-4 text-[12px] font-semibold text-bad">{error}</p>}
 
       <button
-        onClick={() => (isSignUp ? signUp(nickname, role) : signIn(nickname))}
-        disabled={!nickname.trim()}
-        className="mt-8 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white disabled:bg-gray-300"
+        onClick={submit}
+        disabled={busy}
+        className="mt-6 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white disabled:bg-gray-300"
       >
-        {isSignUp ? '시작하기' : '로그인'}
+        {busy ? '만드는 중…' : '가입하고 시작하기'}
+      </button>
+
+      <button onClick={onGoSignIn} className="mt-3 w-full text-[12px] text-ink-soft">
+        이미 계정이 있어요 — 로그인
+      </button>
+
+      <PasswordNotice />
+      <LocalNotice />
+    </main>
+  );
+}
+
+function SignInForm({
+  onBack,
+  onGoSignUp,
+  rememberedUserId,
+  accountCount,
+}: {
+  onBack: () => void;
+  onGoSignUp: () => void;
+  rememberedUserId: string | null;
+  accountCount: number;
+}) {
+  const [userId, setUserId] = useState(rememberedUserId ?? '');
+  const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(Boolean(rememberedUserId));
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setError(null);
+    setBusy(true);
+    const result = await signIn({ userId, password, remember });
+    setBusy(false);
+    if (!result.ok) setError(result.message);
+  }
+
+  return (
+    <main className="px-5 pb-16 pt-5">
+      <button onClick={onBack} className="text-lg text-ink" aria-label="뒤로">
+        ←
+      </button>
+
+      <h1 className="mt-4 text-[19px] font-bold text-ink">로그인</h1>
+      <p className="mt-1.5 text-[13px] text-ink-soft">
+        {accountCount === 0
+          ? '이 기기에 저장된 계정이 아직 없어요.'
+          : '이 기기에서 만든 계정으로 들어갑니다.'}
+      </p>
+
+      <div className="mt-6 space-y-4">
+        <Field label="아이디">
+          <input
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+            autoComplete="username"
+            className={inputClass}
+          />
+        </Field>
+
+        <Field label="비밀번호">
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            autoComplete="current-password"
+            className={inputClass}
+          />
+        </Field>
+
+        <label className="flex items-center gap-2 text-[13px] text-ink">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 accent-brand"
+          />
+          아이디 저장
+        </label>
+      </div>
+
+      {error && <p className="mt-4 text-[12px] font-semibold text-bad">{error}</p>}
+
+      <button
+        onClick={submit}
+        disabled={busy}
+        className="mt-6 w-full rounded-lg bg-brand py-4 text-[15px] font-bold text-white disabled:bg-gray-300"
+      >
+        {busy ? '확인 중…' : '로그인'}
+      </button>
+
+      <button onClick={onGoSignUp} className="mt-3 w-full text-[12px] text-ink-soft">
+        계정이 없어요 — 회원가입
       </button>
 
       <LocalNotice />
@@ -156,11 +354,39 @@ function Gate({ hasLocalData }: { hasLocalData: boolean }) {
   );
 }
 
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <span className="mb-2 block text-[13px] font-semibold text-ink">{label}</span>
+      {children}
+      {hint && <p className="mt-1.5 text-[11px] text-ink-soft">{hint}</p>}
+    </div>
+  );
+}
+
+function PasswordNotice() {
+  return (
+    <p className="mt-4 rounded-lg bg-amber-50 p-3 text-left text-[11px] leading-relaxed text-amber-800">
+      ⚠️ <b>데모용 계정입니다.</b> 비밀번호는 해시로만 저장하고 원문은 남기지 않지만, 서버가 없는
+      기기 안 계정이라 실제 보안이 되는 구조가 아닙니다. <b>평소 쓰시는 비밀번호는 넣지 마세요.</b>
+    </p>
+  );
+}
+
 function LocalNotice() {
   return (
     <p className="mt-6 rounded-lg bg-gray-50 p-3 text-left text-[11px] leading-relaxed text-ink-soft">
-      ⓘ 지금은 계정을 <b>이 브라우저에만</b> 저장합니다. 서버로 보내지 않기 때문에 다른 기기에서는
-      보이지 않고, 브라우저 데이터를 지우면 함께 사라집니다.
+      ⓘ 계정을 <b>이 브라우저에만</b> 저장합니다. 아이디 중복확인도 이 기기에 저장된 계정들 안에서만
+      검사하고, 다른 기기에서는 같은 아이디로 로그인할 수 없습니다. 브라우저 데이터를 지우면 함께
+      사라집니다.
     </p>
   );
 }
@@ -194,9 +420,9 @@ function Profile() {
       <div className="flex items-center gap-3">
         <LogoMark size={44} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[17px] font-bold text-ink">{profile.nickname}</div>
+          <div className="truncate text-[17px] font-bold text-ink">{profile.name}</div>
           <div className="text-[12px] text-ink-soft">
-            {profile.role === 'OWNER' ? '사장님' : '구직자'}
+            @{profile.userId} · {profile.role === 'OWNER' ? '사장님' : '구직자'}
           </div>
         </div>
         <button onClick={signOut} className="text-[12px] font-semibold text-ink-soft">
@@ -211,7 +437,9 @@ function Profile() {
       )}
 
       {/* ── 찜한 공고 ── */}
-      <h2 className="mb-2.5 mt-7 text-[13px] font-bold text-ink">♥ 찜한 공고 ({favorites.length})</h2>
+      <h2 className="mb-2.5 mt-7 text-[13px] font-bold text-ink">
+        ♥ 찜한 공고 ({favorites.length})
+      </h2>
       {favorites.length === 0 ? (
         <EmptyState
           title="아직 찜한 공고가 없어요."
