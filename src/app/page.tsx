@@ -6,11 +6,13 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TransportMode } from '@/types';
 import PlaceAutocomplete, { saveRecentOrigin } from '@/components/PlaceAutocomplete';
 import WorkHoursSlider from '@/components/WorkHoursSlider';
 import { Wordmark } from '@/components/Logo';
+import { defaultOrigin } from '@/lib/account';
+import { useAccount } from '@/lib/useAccount';
 
 const MODES: [TransportMode, string][] = [
   ['TRANSIT', '대중교통'],
@@ -20,10 +22,24 @@ const MODES: [TransportMode, string][] = [
 
 export default function HomePage() {
   const router = useRouter();
+  const account = useAccount();
+
   const [origin, setOrigin] = useState('신촌역');
   const [keyword, setKeyword] = useState('');
   const [hours, setHours] = useState(5);
   const [mode, setMode] = useState<TransportMode>('TRANSIT');
+  /** 마이페이지에 저장해 둔 기본값은 처음 한 번만 채웁니다 (사용자가 바꾼 값을 덮지 않게) */
+  const applied = useRef(false);
+
+  useEffect(() => {
+    if (applied.current || !account.profile) return;
+    applied.current = true;
+
+    setHours(account.prefs.hours);
+    setMode(account.prefs.mode);
+    const saved = defaultOrigin(account);
+    if (saved) setOrigin(saved);
+  }, [account]);
 
   const canSearch = origin.trim().length > 0;
 

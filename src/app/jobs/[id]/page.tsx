@@ -24,6 +24,7 @@ import WorkHoursSlider from '@/components/WorkHoursSlider';
 import SourceBadge from '@/components/SourceBadge';
 import EstimatedTag, { hoursSourceOf } from '@/components/EstimatedTag';
 import EmptyState from '@/components/EmptyState';
+import FavoriteButton from '@/components/FavoriteButton';
 import { MinimumWageWarning } from '@/components/RealWageBadge';
 
 /** 교통비 지원 선택지 */
@@ -145,7 +146,10 @@ function JobDetail() {
         <Link href={`/search?${searchQuery}`} className="text-lg text-gray-400" aria-label="검색 결과로">
           ←
         </Link>
-        <ShareButton title={job.title} />
+        <span className="ml-auto flex items-center gap-3">
+          <FavoriteButton job={job} calc={calc} origin={origin} mode={mode} size="lg" />
+          <ShareButton title={job.title} />
+        </span>
       </div>
 
       <div className="mt-3">
@@ -348,7 +352,7 @@ function ShareButton({ title }: { title: string }) {
       type="button"
       onClick={share}
       aria-label="공고 공유하기"
-      className="ml-auto text-xs font-semibold text-gray-500"
+      className="text-xs font-semibold text-ink-soft"
     >
       {copied ? '링크 복사됨' : '⇪ 공유'}
     </button>

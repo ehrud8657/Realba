@@ -1,9 +1,8 @@
 /**
  * 하단 탭바 (Figma 시안 '하단바')
  *
- * 시안에는 Home / Search / Plus / My Page 네 개가 있지만, 해커톤 범위에서
- * 공고 등록(Plus)과 마이페이지는 만들지 않았습니다 (→ docs/TEAM.md §1).
- * 눌리지 않는 버튼을 두면 데모에서 사고가 나므로, 두 개는 '준비 중'으로 흐려 둡니다.
+ * 시안의 네 탭 중 공고 등록(Plus)은 아직 화면이 없습니다.
+ * 눌리지 않는 버튼을 두면 데모에서 사고가 나므로 '준비 중'으로 흐려 둡니다.
  */
 
 'use client';
@@ -57,9 +56,10 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: '#',
+    href: '/me',
     label: 'My Page',
-    ready: false,
+    ready: true,
+    match: (p) => p.startsWith('/me'),
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
         <circle cx="12" cy="8.5" r="3.5" />

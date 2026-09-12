@@ -245,7 +245,14 @@ function SearchResults() {
           </p>
           <div className="mt-3 space-y-3">
             {data.items.map((item, i) => (
-              <JobCard key={item.job.id} item={item} rank={i + 1} query={query} />
+              <JobCard
+                key={item.job.id}
+                item={item}
+                rank={i + 1}
+                query={query}
+                origin={origin}
+                mode={mode}
+              />
             ))}
           </div>
 

@@ -12,21 +12,25 @@
  */
 
 import Link from 'next/link';
-import type { JobResult } from '@/types';
+import type { JobResult, TransportMode } from '@/types';
 import { minutes, won } from '@/lib/format';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
 import RealWageBadge, { MinimumWageWarning } from './RealWageBadge';
 import SourceBadge from './SourceBadge';
 import EstimatedTag, { hoursSourceOf } from './EstimatedTag';
+import FavoriteButton from './FavoriteButton';
 
 interface Props {
   item: JobResult;
   rank: number;
   /** 상세 페이지로 넘길 검색 조건 */
   query: string;
+  /** 찜할 때 함께 남길 검색 조건 */
+  origin: string;
+  mode: TransportMode;
 }
 
-export default function JobCard({ item, rank, query }: Props) {
+export default function JobCard({ item, rank, query, origin, mode }: Props) {
   const { job, route, calc } = item;
 
   return (
@@ -37,6 +41,9 @@ export default function JobCard({ item, rank, query }: Props) {
       <div className="mb-1.5 flex items-center gap-1.5">
         <span className="text-[13px] font-bold text-ink tnum">{rank}위</span>
         <SourceBadge source={job.source} />
+        <span className="ml-auto">
+          <FavoriteButton job={job} calc={calc} origin={origin} mode={mode} />
+        </span>
       </div>
 
       <div className="text-[15px] font-bold leading-snug text-ink">{job.title}</div>
