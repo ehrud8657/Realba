@@ -27,7 +27,9 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const cache = new Map<string, LatLng | null>();
 
 export function hasGeocodeKey() {
-  return Boolean(KAKAO_KEY);
+  const configured = Boolean(KAKAO_KEY);
+  console.info('[Kakao] 키 설정 여부:', configured);
+  return configured;
 }
 
 /* ── OSM Nominatim (키 없이 쓰는 대체 지오코더) ───────────────────── */
@@ -90,7 +92,8 @@ export async function geocode(query: string): Promise<LatLng | null> {
   if (cache.has(key)) return cache.get(key)!;
 
   let result: LatLng | null = null;
-  if (KAKAO_KEY) {
+  // hasGeocodeKey()로 물어보면 키 설정 여부가 로그에 남습니다 (팀원이 넣은 진단용)
+  if (hasGeocodeKey()) {
     result = (await search('address', key)) ?? (await search('keyword', key));
   }
   if (!result) {
@@ -164,26 +167,42 @@ export async function geocodeDetailed(query: string): Promise<GeocodeHit | null>
   return null;
 }
 
-async function search(kind: 'address' | 'keyword', query: string): Promise<LatLng | null> {
+async function search(
+  kind: 'address' | 'keyword',
+  query: string,
+): Promise<LatLng | null> {
   try {
     const url = `https://dapi.kakao.com/v2/local/search/${kind}.json?query=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
       headers: { Authorization: `KakaoAK ${KAKAO_KEY}` },
       signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) return null;
+
+    if (!res.ok) {
+      console.warn('[Kakao] 요청 실패', {
+        kind,
+        status: res.status,
+      });
+      return null;
+    }
 
     const data = await res.json();
     const doc = data?.documents?.[0];
-    if (!doc) return null;
 
-    // ★ 주의: 카카오는 x가 경도(lng), y가 위도(lat)입니다. 반대로 쓰면 엉뚱한 곳이 나옵니다
+    if (!doc) {
+      console.info('[Kakao] 검색 결과 없음', { kind });
+      return null;
+    }
+
     return { lat: Number(doc.y), lng: Number(doc.x) };
-  } catch {
+  } catch (error) {
+    console.warn('[Kakao] 요청 처리 중 예외', {
+      kind,
+      name: error instanceof Error ? error.name : 'UnknownError',
+    });
     return null;
   }
 }
-
 /**
  * 플랜 B — 지오코딩이 아예 안 될 때 쓰는 고정 출발지.
  * 홈 화면의 출발지 입력을 드롭다운으로 바꾸고 이 값을 쓰면 됩니다.
