@@ -8,7 +8,7 @@
 import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import type { JobsResponse, SortKey } from '@/types';
+import type { JobsResponse, SortKey, TransportMode } from '@/types';
 import JobCard from '@/components/JobCard';
 import SortToggle from '@/components/SortToggle';
 
@@ -25,6 +25,7 @@ function SearchResults() {
   const origin = sp.get('origin') ?? '신촌역';
   const keyword = sp.get('keyword') ?? '';
   const hours = sp.get('hours') ?? '5';
+  const mode = (sp.get('mode') as TransportMode) ?? 'TRANSIT';
 
   const [sort, setSort] = useState<SortKey>('REAL_WAGE');
   const [data, setData] = useState<JobsResponse | null>(null);
@@ -32,8 +33,8 @@ function SearchResults() {
 
   // 상세 페이지로 넘길 검색 조건
   const query = useMemo(
-    () => new URLSearchParams({ origin, keyword, hours }).toString(),
-    [origin, keyword, hours],
+    () => new URLSearchParams({ origin, keyword, hours, mode }).toString(),
+    [origin, keyword, hours, mode],
   );
 
   useEffect(() => {
@@ -41,7 +42,7 @@ function SearchResults() {
     setData(null);
     setError(null);
 
-    fetch(`/api/jobs?${query}&sort=${sort}`)
+    fetch(`/api/jobs?${query}&sort=${sort}`, { signal: AbortSignal.timeout(15000) })
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();

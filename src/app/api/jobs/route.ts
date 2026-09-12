@@ -18,7 +18,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import type { Job, JobResult, JobsResponse, LatLng, Route, SortKey } from '@/types';
+import type { Job, JobResult, JobsResponse, LatLng, Route, SortKey, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
 import { FALLBACK_ORIGINS, geocode, hasGeocodeKey } from '@/lib/geocode';
 import { estimateRoute, getRoute, hasOdsayKey } from '@/lib/odsay';
@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
   const keyword = sp.get('keyword')?.trim() || '';
   const hours = clamp(Number(sp.get('hours')) || 5, 1, 14);
   const sort = (sp.get('sort') as SortKey) || 'REAL_WAGE';
+  const mode = (sp.get('mode') as TransportMode) || 'TRANSIT';
 
   // ── 1. 출발지 좌표 ────────────────────────────────
   const originLocation = await resolveOrigin(originQuery);
@@ -71,7 +72,7 @@ export async function GET(req: NextRequest) {
   // ── 3. 경로 + 실질시급 계산 ───────────────────────
   const items: JobResult[] = await Promise.all(
     jobs.map(async (job) => {
-      const route = await resolveRoute(originLocation, job);
+      const route = await resolveRoute(originLocation, job, mode);
       const { mockRoute, ...cleanJob } = job;
       return { job: cleanJob, route, calc: calcForJob(cleanJob, route) };
     }),
@@ -116,13 +117,19 @@ async function resolveOrigin(query: string): Promise<LatLng> {
 }
 
 /** 경로 구하기: ODsay → 목데이터 → 직선거리 추정 순으로 시도 */
-async function resolveRoute(origin: LatLng, job: SeedJob): Promise<Route | null> {
+async function resolveRoute(origin: LatLng, job: SeedJob, mode: TransportMode): Promise<Route | null> {
+  if (mode !== 'TRANSIT') {
+    const base = job.mockRoute ?? estimateRoute(origin, job.location);
+    const factor = mode === 'TAXI' ? 0.65 : 0.8;
+    const fare = mode === 'TAXI' ? Math.max(4800, Math.round(base.oneWayFare * 4)) : Math.max(0, Math.round(base.oneWayFare * 1.5));
+    return { ...base, oneWayMinutes: Math.max(1, Math.round(base.oneWayMinutes * factor)), oneWayFare: fare, mode };
+  }
   if (hasOdsayKey()) {
     const real = await getRoute(origin, job.location);
-    if (real) return real;
+    if (real) return { ...real, mode };
   }
-  if (job.mockRoute) return job.mockRoute;
-  return estimateRoute(origin, job.location);
+  if (job.mockRoute) return { ...job.mockRoute, mode };
+  return { ...estimateRoute(origin, job.location), mode };
 }
 
 function clamp(n: number, min: number, max: number) {

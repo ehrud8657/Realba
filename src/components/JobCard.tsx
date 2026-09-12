@@ -45,7 +45,10 @@ export default function JobCard({ item, rank, query }: Props) {
         {calc ? (
           <RealWageBadge calc={calc} />
         ) : (
-          <div className="text-sm text-bad">경로를 찾지 못했어요 — 계산 불가</div>
+          <div>
+            <div className="text-sm text-gray-400 line-through tnum">시급 {won(job.hourlyWage)}</div>
+            <div className="text-sm text-bad">경로를 찾지 못했어요 — 실질시급 계산 불가</div>
+          </div>
         )}
       </div>
 
