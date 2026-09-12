@@ -138,6 +138,19 @@ function SearchResults() {
         </p>
       )}
 
+      {data?.origin?.outOfArea && (
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+          <b>{data.origin.label}</b> 은 서울에서 많이 떨어져 있어요. 지금 공고는 모두 서울이라
+          이동시간이 비현실적으로 길게 나옵니다.
+        </p>
+      )}
+
+      {data?.origin && data.origin.resolved && data.origin.usedLabel && (
+        <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-[11px] text-gray-500">
+          <b>{data.origin.usedLabel}</b> 기준으로 계산했습니다.
+        </p>
+      )}
+
       <div className="mt-4">
         <SortToggle value={sort} onChange={setSort} />
       </div>
