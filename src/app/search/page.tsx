@@ -138,6 +138,12 @@ function SearchResults() {
         </p>
       )}
 
+      {data?.origin && data.origin.resolved && data.origin.usedLabel && (
+        <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-[11px] text-gray-500">
+          <b>{data.origin.usedLabel}</b> 기준으로 계산했습니다.
+        </p>
+      )}
+
       <div className="mt-4">
         <SortToggle value={sort} onChange={setSort} />
       </div>

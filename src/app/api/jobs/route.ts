@@ -25,9 +25,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { Job, JobResult, JobsResponse, LatLng, Route, SortKey, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
-import { DEFAULT_ORIGIN_LABEL, FALLBACK_ORIGINS, geocode, hasGeocodeKey } from '@/lib/geocode';
+import {
+  DEFAULT_ORIGIN_LABEL,
+  FALLBACK_ORIGINS,
+  findFallbackOrigin,
+  geocode,
+  hasGeocodeKey,
+} from '@/lib/geocode';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
-import { estimateRoute, getRoute, hasOdsayKey, haversineKm } from '@/lib/odsay';
+import {
+  estimateCar,
+  estimateRoute,
+  estimateTaxi,
+  getRoute,
+  hasOdsayKey,
+  haversineKm,
+} from '@/lib/odsay';
 import { fetchSaraminJobs, hasSaraminKey } from '@/lib/saramin';
 
 import mockJobsRaw from '@/data/mockJobs.json';
@@ -149,7 +162,7 @@ export async function GET(req: NextRequest) {
       label: originQuery,
       location: origin.location,
       resolved: origin.resolved,
-      ...(origin.resolved ? {} : { usedLabel: DEFAULT_ORIGIN_LABEL }),
+      ...(origin.usedLabel ? { usedLabel: origin.usedLabel } : {}),
     },
     total,
     limit,
@@ -165,8 +178,19 @@ export async function GET(req: NextRequest) {
  * 못 찾으면 기본 출발지로 계산하되 resolved=false를 함께 돌려줍니다.
  * (화면이 "입력한 곳을 못 찾아 신촌역 기준으로 계산했다"고 알려줄 수 있게)
  */
-async function resolveOrigin(query: string): Promise<{ location: LatLng; resolved: boolean }> {
-  if (FALLBACK_ORIGINS[query]) return { location: FALLBACK_ORIGINS[query], resolved: true };
+async function resolveOrigin(
+  query: string,
+): Promise<{ location: LatLng; resolved: boolean; usedLabel?: string }> {
+  // "안암"처럼 일부만 쳐도 고정 목록에서 찾습니다
+  const known = findFallbackOrigin(query);
+  if (known) {
+    return {
+      location: known.location,
+      resolved: true,
+      // 입력과 다른 이름으로 해석했으면 화면에 알려줍니다
+      ...(known.label === query ? {} : { usedLabel: known.label }),
+    };
+  }
 
   if (hasGeocodeKey()) {
     const found = await geocode(query);
@@ -175,18 +199,17 @@ async function resolveOrigin(query: string): Promise<{ location: LatLng; resolve
 
   return {
     location: FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL],
-    resolved: query === DEFAULT_ORIGIN_LABEL,
+    resolved: false,
+    usedLabel: DEFAULT_ORIGIN_LABEL,
   };
 }
 
 /** 경로 구하기: ODsay → 목데이터 → 직선거리 추정 순으로 시도 */
 async function resolveRoute(origin: LatLng, job: SeedJob, mode: TransportMode): Promise<Route | null> {
-  if (mode !== 'TRANSIT') {
-    const base = baseRoute(origin, job);
-    const factor = mode === 'TAXI' ? 0.65 : 0.8;
-    const fare = mode === 'TAXI' ? Math.max(4800, Math.round(base.oneWayFare * 4)) : Math.max(0, Math.round(base.oneWayFare * 1.5));
-    return { ...base, oneWayMinutes: Math.max(1, Math.round(base.oneWayMinutes * factor)), oneWayFare: fare, mode };
-  }
+  // 택시·자가용은 대중교통 값에 계수를 곱하지 않고 거리에서 직접 계산합니다
+  // (예전에는 대중교통 요금 × 4 였는데, 신촌→강남이 5,600원으로 나와 실제의 1/4이었습니다)
+  if (mode === 'TAXI') return { ...estimateTaxi(origin, job.location), mode };
+  if (mode === 'CAR') return { ...estimateCar(origin, job.location), mode };
   if (hasOdsayKey()) {
     const real = await getRoute(origin, job.location);
     if (real) return { ...real, mode };

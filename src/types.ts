@@ -112,7 +112,7 @@ export interface JobsResponse {
     location: LatLng;
     /** false면 좌표를 못 찾아 기본 출발지로 계산했다는 뜻 — 화면에 알려야 합니다 */
     resolved: boolean;
-    /** resolved=false일 때 실제로 계산에 쓴 출발지 이름 */
+    /** 입력과 다른 이름으로 해석했을 때 실제로 계산에 쓴 출발지 이름 */
     usedLabel?: string;
   } | null;
   /** 조건에 맞는 전체 건수 (limit 적용 전) */
