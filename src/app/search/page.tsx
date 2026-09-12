@@ -116,14 +116,14 @@ function SearchResults() {
   return (
     <main className="px-5 pb-16 pt-5">
       <div className="flex items-center gap-3">
-        <Link href="/" className="text-lg text-gray-400" aria-label="홈으로">
+        <Link href="/" className="text-lg text-ink" aria-label="홈으로">
           ←
         </Link>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold">
+          <div className="truncate text-[15px] font-bold text-ink">
             {origin} 출발 {keyword && `· ${keyword}`}
           </div>
-          <div className="text-[11px] text-gray-400">
+          <div className="text-[11px] text-ink-soft">
             {MODE_LABEL[mode]} · 하루 {hours}시간 기준
           </div>
         </div>
@@ -253,7 +253,7 @@ function SearchResults() {
             <button
               onClick={() => setPage({ key: listKey, limit: limit + PAGE_SIZE })}
               disabled={loading}
-              className="mt-4 w-full rounded-lg border border-gray-300 py-3 text-sm font-semibold text-gray-600 disabled:opacity-50"
+              className="mt-4 w-full rounded-lg border border-line py-3.5 text-sm font-semibold text-ink-soft disabled:opacity-50"
             >
               {loading ? '불러오는 중…' : '더 보기'}
             </button>

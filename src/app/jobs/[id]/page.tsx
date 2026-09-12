@@ -16,7 +16,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { JobResult, JobsResponse, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
-import { LOSS_STYLE, lossLevel, percent, won } from '@/lib/format';
+import { percent, won } from '@/lib/format';
 import { isBelowMinimumWage, minimumWage } from '@/lib/minimumWage';
 import CalcBreakdown from '@/components/CalcBreakdown';
 import RouteSummary from '@/components/RouteSummary';
@@ -157,28 +157,28 @@ function JobDetail() {
             </span>
           )}
         </span>
-        <h1 className="mt-2 text-lg font-bold leading-snug">{job.title}</h1>
-        <p className="mt-1 text-xs text-gray-500">
+        <h1 className="mt-2 text-[19px] font-bold leading-snug text-ink">{job.title}</h1>
+        <p className="mt-1 text-[12px] text-ink-soft">
           {job.companyName} · {job.address}
         </p>
       </div>
 
       {calc ? (
         <>
-          <div className="mt-5 rounded-xl border-2 border-gray-900 p-4 text-center">
-            <div className="text-xs text-gray-500">실질시급</div>
+          <div className="mt-5 rounded-card border border-line p-5 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div className="text-[11px] text-ink-soft">실질시급</div>
             <div
-              className="mt-1 text-3xl font-bold tnum"
+              className="mt-1 text-[34px] font-extrabold text-ink tnum"
               aria-label={`실질시급 ${calc.realHourlyWage}원, 표시 시급 ${calc.nominalHourlyWage}원 대비 ${percent(Math.abs(calc.lossRate))} ${calc.lossRate >= 0 ? '낮음' : '높음'}`}
             >
-              {won(calc.realHourlyWage)}
+              {won(calc.realHourlyWage)} {calc.lossRate < 0.1 ? '🔥' : ''}
             </div>
-            <div className="mt-1 text-xs text-gray-500 tnum">
-              표시 시급 {won(calc.nominalHourlyWage)} 대비
+            <div className="mt-1.5 text-[12px] text-ink-soft tnum">
+              기본 시급 {won(calc.nominalHourlyWage)} 대비
             </div>
             <div
-              className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-xs font-semibold tnum ${
-                LOSS_STYLE[lossLevel(calc.lossRate)]
+              className={`mt-0.5 text-[13px] font-bold tnum ${
+                calc.lossRate >= 0 ? 'text-bad' : 'text-good'
               }`}
             >
               {calc.lossRate >= 0 ? '−' : '+'}
@@ -195,11 +195,12 @@ function JobDetail() {
             )}
           </div>
 
-          <h2 className="mb-2 mt-6 text-sm font-bold">계산 과정</h2>
-          <CalcBreakdown calc={calc} />
+          <div className="mt-7">
+            <CalcBreakdown calc={calc} />
+          </div>
 
-          <h2 className="mb-2 mt-6 text-sm font-bold">조건 바꿔보기</h2>
-          <div className="space-y-4 rounded-xl border border-gray-200 p-4">
+          <h2 className="mb-2 mt-7 text-[13px] font-bold text-ink">조건 바꿔보기</h2>
+          <div className="space-y-4 rounded-card border border-line p-4">
             <WorkHoursSlider value={hours} onChange={changeHours} />
 
             <div>
@@ -286,15 +287,15 @@ function JobDetail() {
         <p className="mt-6 text-sm text-bad">경로를 찾지 못해 실질시급을 계산할 수 없어요.</p>
       )}
 
-      <h2 className="mb-2 mt-6 text-sm font-bold">이동 경로</h2>
+      <h2 className="mb-2 mt-7 text-[13px] font-bold text-ink">이동 경로</h2>
       <RouteSummary
         route={route}
         mode={mode}
         subsidyPerDay={subsidy === 'FULL' ? (route?.oneWayFare ?? 0) * 2 : Number(subsidy ?? 0)}
       />
 
-      <h2 className="mb-2 mt-6 text-sm font-bold">공고 정보</h2>
-      <div className="rounded-xl border border-gray-200 p-4 text-sm">
+      <h2 className="mb-2 mt-7 text-[13px] font-bold text-ink">공고 정보</h2>
+      <div className="rounded-card border border-line p-4 text-sm">
         <Info label="시급" value={won(job.hourlyWage)} />
         <Info label="하루 근무시간" value={`${hours}시간`} />
         {job.workTime && <Info label="근무 시간대" value={job.workTime} />}
@@ -314,7 +315,7 @@ function JobDetail() {
           href={job.url}
           target="_blank"
           rel="noreferrer"
-          className="mt-6 block rounded-lg bg-gray-900 py-3.5 text-center text-sm font-bold text-white"
+          className="mt-7 block rounded-lg bg-ink py-4 text-center text-[15px] font-bold text-white"
         >
           사람인에서 지원하기 ↗
         </a>
