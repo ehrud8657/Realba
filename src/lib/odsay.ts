@@ -18,6 +18,7 @@ const ODSAY_KEY = process.env.ODSAY_API_KEY;
 
 /** 경로 캐시. 좌표를 소수점 4자리(약 11m)로 반올림해 키를 만들어 적중률을 높입니다 */
 const cache = new Map<string, Route | null>();
+let routeQueue: Promise<void> = Promise.resolve();
 
 export function hasOdsayKey() {
   return Boolean(ODSAY_KEY);
@@ -35,20 +36,34 @@ export async function getRoute(origin: LatLng, dest: LatLng): Promise<Route | nu
   if (cache.has(key)) return cache.get(key)!;
   if (!ODSAY_KEY) return null;
 
-  const route = await callOdsay(origin, dest);
+  const task = routeQueue.then(() => callOdsay(origin, dest));
+
+routeQueue = task.then(
+  () => new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+  () => new Promise<void>((resolve) => setTimeout(resolve, 1000)),
+);
+
+const route = await task;
   cache.set(key, route);
   return route;
 }
 
 async function callOdsay(o: LatLng, d: LatLng): Promise<Route | null> {
   try {
-    // ★ 키는 발급된 값을 그대로 넣습니다. encodeURIComponent를 한 번 더 하면 인증 실패
-    const url =
-      `https://api.odsay.com/v1/api/searchPubTransPathT` +
-      `?apiKey=${ODSAY_KEY}` +
-      `&SX=${o.lng}&SY=${o.lat}` +
-      `&EX=${d.lng}&EY=${d.lat}` +
-      `&OPT=0&SearchPathType=0`;
+    // 키와 좌표를 URL에 안전하게 넣습니다.
+const params = new URLSearchParams({
+  apiKey: ODSAY_KEY ?? '',
+  SX: String(o.lng),
+  SY: String(o.lat),
+  EX: String(d.lng),
+  EY: String(d.lat),
+  OPT: '0',
+  SearchPathType: '0',
+});
+
+const url =
+  `https://api.odsay.com/v1/api/searchPubTransPathT?${params}`;
+    
 
     const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (!res.ok) return null;
@@ -56,7 +71,11 @@ async function callOdsay(o: LatLng, d: LatLng): Promise<Route | null> {
     const data = await res.json();
 
     // 출발지·도착지가 너무 가까우면 경로가 없습니다 → 도보로 처리
-    if (data?.error) return walkingFallback(o, d);
+    if (data?.error) {
+  const errors = Array.isArray(data.error) ? data.error : [data.error];
+  console.warn('ODsay 오류 코드:', errors.map((error: { code?: string }) => error.code));
+  return null;
+}
 
     const info = data?.result?.path?.[0]?.info;
     if (!info) return walkingFallback(o, d);
