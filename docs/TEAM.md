@@ -149,23 +149,35 @@ realwage/
 │  │  ├─ page.tsx              # S-01 홈            → B
 │  │  ├─ search/page.tsx       # S-02 검색 결과     → B
 │  │  ├─ jobs/[id]/page.tsx    # S-03 상세          → B
-│  │  └─ api/jobs/route.ts     # 유일한 API         → A
-│  ├─ components/
-│  │  ├─ JobCard.tsx           # 결과 카드          → B
-│  │  ├─ RealWageBadge.tsx     # 실질시급 배지      → B
-│  │  ├─ SortToggle.tsx        # 정렬 토글 ★        → B
-│  │  └─ CalcBreakdown.tsx     # 계산 과정 카드     → B
-│  ├─ lib/
-│  │  ├─ calc.ts               # 실질시급 계산 ★    → A (완성)
-│  │  ├─ format.ts             # 숫자 포맷 유틸     → 공용
-│  │  ├─ saramin.ts            # 사람인             → A (검증 필요)
-│  │  ├─ geocode.ts            # 카카오             → A (검증 필요)
-│  │  └─ odsay.ts              # 대중교통 경로      → A (검증 필요)
-│  └─ data/
-│     ├─ mockJobs.json         # 사람인 대체 목데이터 15건 → C
-│     └─ ownerJobs.json        # 사장님 공고 5건          → C
+│  │  └─ api/
+│  │     ├─ jobs/route.ts      # 공고 검색 + 계산   → A
+│  │     └─ geocode/route.ts   # 출발지 자동완성    → A
+│  ├─ components/              # 전부 B 소유
+│  │  ├─ JobCard.tsx           # 결과 카드
+│  │  ├─ RealWageBadge.tsx     # 실질시급 + 손실률 + 최저임금 경고
+│  │  ├─ SortToggle.tsx        # 정렬 토글 ★
+│  │  ├─ CalcBreakdown.tsx     # 계산 과정 카드
+│  │  ├─ PlaceAutocomplete.tsx # 출발지 자동완성 + 최근 출발지
+│  │  ├─ WorkHoursSlider.tsx   # 근무시간 슬라이더
+│  │  ├─ RouteSummary.tsx      # 이동 경로 요약
+│  │  ├─ SourceBadge.tsx       # 사람인 / 사장님공고
+│  │  ├─ EstimatedTag.tsx      # 확정 / 공고 추정 / 입력값
+│  │  └─ EmptyState.tsx        # 빈 결과 · 에러
+│  ├─ lib/                     # 전부 A 소유
+│  │  ├─ calc.ts               # 실질시급 계산 ★ (주휴수당 포함)
+│  │  ├─ minimumWage.ts        # 연도별 최저임금
+│  │  ├─ format.ts             # 숫자 포맷 유틸
+│  │  ├─ saramin.ts            # 사람인
+│  │  ├─ geocode.ts            # 카카오 + OSM + 고정 출발지 62곳
+│  │  └─ odsay.ts              # 경로 + 거리 기반 추정
+│  └─ data/                    # C 소유
+│     ├─ mockJobs.json         # 사람인 대체 목데이터 30건 (서울 25개 자치구)
+│     └─ ownerJobs.json        # 사장님 공고 10건
 └─ .env.local                  # API 키 (절대 커밋 금지)
 ```
+
+> 카카오 키가 없어도 출발지 검색이 됩니다(OSM으로 대체). 다만 상호명은 못 찾고 느리니,
+> **배포 전에는 카카오 키를 넣으세요.** 자세한 동작은 [README §6](../README.md)을 보세요.
 
 ### 앱처럼 설치됩니다 (PWA)
 
@@ -262,8 +274,8 @@ realwage/
 
 | 파일 | 주인 | 다른 사람은 |
 |---|---|---|
-| `src/lib/*` | **A** | 읽기만 |
-| `src/app/api/*` | **A** | 읽기만 |
+| `src/lib/*` | **A** | 읽기만. `calc.ts`는 화면에서 import만 해서 씁니다 |
+| `src/app/api/*` | **A** | 읽기만 (`jobs`, `geocode` 두 개) |
 | `src/types.ts` | **A** | 읽기만. 바꿔야 하면 **A에게 말로 요청** |
 | `src/app/page.tsx`, `search/`, `jobs/` | **B** | A가 H+6 이후 도울 때는 **파일을 나눠 가짐** |
 | `src/components/*` | **B** | C는 "여기 이렇게 바꿔줘"로 요청 |
@@ -318,6 +330,10 @@ realwage/
 - [ ] 7. (H+6) 백엔드 손 떼고 **B의 프론트 작업 돕기**
 
 #### 공용 타입 (`src/types.ts`) — 이미 레포에 있습니다
+
+> 아래는 뼈대 버전입니다. 지금은 `hoursSource`(확정/공고 추정/입력값), 마감일·근무요일 같은
+> 필드가 더 있고, 응답에 페이지 정보(`limit`·`hasMore`)와 출발지 해석 결과(`origin.resolved`)가
+> 들어 있습니다. 정확한 정의는 파일을 보세요.
 
 ```ts
 export type JobSource = 'SARAMIN' | 'OWNER';
@@ -384,6 +400,10 @@ export function calcRealWage(params: {
   };
 }
 ```
+
+> 위 코드는 **뼈대 버전**입니다. 지금 `src/lib/calc.ts`에는 교통비 지원과 주휴수당 옵션이
+> 더 붙어 있고, 결과에 `dailyCommuteCost`·`dailyHolidayPay` 같은 항목이 추가됐습니다.
+> 화면에서 쓸 때는 파일을 직접 보세요. 아래 검산값은 그대로 유효합니다.
 
 **검산 (이 값이 안 나오면 코드가 틀린 겁니다)**
 

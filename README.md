@@ -176,23 +176,60 @@ realwage/
 │  │  ├─ page.tsx              # S-01 홈
 │  │  ├─ search/page.tsx       # S-02 검색 결과
 │  │  ├─ jobs/[id]/page.tsx    # S-03 공고 상세
-│  │  └─ api/jobs/route.ts     # 유일한 API — 검색 + 실질시급 계산
+│  │  └─ api/
+│  │     ├─ jobs/route.ts      # 공고 검색 + 실질시급 계산 (메인 API)
+│  │     └─ geocode/route.ts   # 출발지 자동완성
 │  ├─ components/
-│  │  ├─ JobCard.tsx
-│  │  ├─ RealWageBadge.tsx
+│  │  ├─ JobCard.tsx           # 검색 결과 카드
+│  │  ├─ RealWageBadge.tsx     # 실질시급 + 손실률 + 최저임금 경고
 │  │  ├─ SortToggle.tsx        # 시급순 ↔ 실질시급순 ★
-│  │  └─ CalcBreakdown.tsx     # 계산 과정 분해
+│  │  ├─ CalcBreakdown.tsx     # 계산 과정 분해
+│  │  ├─ PlaceAutocomplete.tsx # 출발지 입력 + 자동완성 + 최근 출발지
+│  │  ├─ WorkHoursSlider.tsx   # 근무시간 슬라이더
+│  │  ├─ RouteSummary.tsx      # 이동 경로 요약
+│  │  ├─ SourceBadge.tsx       # 사람인 / 사장님공고
+│  │  ├─ EstimatedTag.tsx      # 확정 / 공고 추정 / 입력값
+│  │  └─ EmptyState.tsx        # 빈 결과 · 에러
 │  ├─ lib/
-│  │  ├─ calc.ts               # ★ 실질시급 계산 (순수 함수)
+│  │  ├─ calc.ts               # ★ 실질시급 계산 (순수 함수, 주휴수당 포함)
+│  │  ├─ minimumWage.ts        # 연도별 최저임금
 │  │  ├─ format.ts
 │  │  ├─ saramin.ts
-│  │  ├─ geocode.ts
-│  │  └─ odsay.ts
+│  │  ├─ geocode.ts            # 카카오 + OSM + 고정 출발지 62곳
+│  │  └─ odsay.ts              # 경로 + 거리 기반 추정 (대중교통·택시·자가용)
 │  └─ data/
-│     ├─ mockJobs.json         # 사람인 대체 목데이터 15건
-│     └─ ownerJobs.json        # 사장님 공고 5건
+│     ├─ mockJobs.json         # 사람인 대체 목데이터 30건 (서울 25개 자치구)
+│     └─ ownerJobs.json        # 사장님 공고 10건
 └─ docs/
 ```
+
+### 출발지는 어떻게 찾나
+
+키가 없어도 검색이 되게 4단계로 찾습니다.
+
+| 순서 | 방법 | 비고 |
+|---|---|---|
+| ① | 고정 출발지 62곳에서 이름이 정확히 일치 | 네트워크 없이 즉시 (약 5ms) |
+| ② | 카카오 로컬 API | `KAKAO_REST_API_KEY`가 있을 때. 상호명·아파트까지 찾습니다 |
+| ③ | OSM Nominatim | 키가 없을 때의 대체. 동·도로명주소·역·대학은 찾지만 상호명은 못 찾습니다 |
+| ④ | 고정 출발지 부분 일치 | 지도가 못 찾았을 때만 (`안암` → 안암역) |
+
+번지나 상세주소가 붙어 실패하면 한 단계씩 줄여가며 다시 찾습니다.
+`서울 관악구 봉천동 1610-1 3층` → 상세주소 제거 → 번지 제거 → 구 단위.
+원문이 아닌 값으로 찾았으면 검색 화면에 **"○○ 기준으로 계산했습니다"**라고 표시합니다.
+
+> ⚠️ Nominatim은 무료 공용 서버라 호출 간격(초당 1회)을 지켜야 하고, 배포 환경은 IP를 공유해
+> 막힐 수 있습니다. **배포용에는 카카오 키를 넣으세요.**
+
+### 근무시간은 어디서 오나
+
+실질시급은 근무시간에 크게 좌우되는데, 공고마다 정확도가 다릅니다. 화면에 출처를 배지로 밝힙니다.
+
+| 배지 | 뜻 | 사용자가 바꾼 값에 덮어써지나 |
+|---|---|---|
+| `확정` | 사장님이 직접 등록 | 아니오 |
+| `공고 추정` | 공고 제목/본문에서 파싱 (`09:00~14:00`) | 아니오 |
+| `입력값` | 아무것도 못 구해 검색창 값을 사용 | 예 |
 
 ---
 
