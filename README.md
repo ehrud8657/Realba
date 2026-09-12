@@ -103,28 +103,27 @@
 ```bash
 git clone https://github.com/ehrud8657/realwage.git
 cd realwage
-pnpm install
-cp .env.example .env.local   # 아래 표 참고해 값 채우기
-docker compose up -d         # postgres + redis
-pnpm prisma migrate dev
-pnpm db:seed                 # 최저임금 테이블 + 샘플 공고
-pnpm dev                     # http://localhost:3000
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-### 환경 변수
+**API 키가 하나도 없어도 바로 동작합니다.** 목데이터로 홈 → 검색 → 상세 흐름이 전부 돌아갑니다.
+검색 결과 화면 우측 상단의 `MOCK` / `LIVE` 배지로 지금 어떤 데이터를 보는지 확인할 수 있습니다.
+
+진짜 데이터를 붙이려면 키를 넣으세요. 넣는 즉시 자동으로 전환됩니다.
 
 ```bash
-DATABASE_URL="postgresql://realwage:realwage@localhost:5432/realwage"
-REDIS_URL="redis://localhost:6379"
-
-SARAMIN_ACCESS_KEY=""        # https://oapi.saramin.co.kr 발급
-ODSAY_API_KEY=""             # https://lab.odsay.com 발급
-KAKAO_REST_API_KEY=""        # https://developers.kakao.com
-NEXT_PUBLIC_KAKAO_JS_KEY=""
-
-AUTH_SECRET=""               # openssl rand -base64 32
-CRON_SECRET=""               # 배치 엔드포인트 보호용
+cp .env.example .env.local
 ```
+
+| 키 | 용도 | 발급처 |
+|---|---|---|
+| `SARAMIN_ACCESS_KEY` | 채용공고 검색 | https://oapi.saramin.co.kr |
+| `KAKAO_REST_API_KEY` | 주소 → 좌표 | https://developers.kakao.com |
+| `ODSAY_API_KEY` | 대중교통 시간·요금 | https://lab.odsay.com |
+
+> ⚠️ `.env.local`은 절대 커밋하지 마세요. `.gitignore`에 등록되어 있습니다.
+> DB(PostgreSQL·Redis)는 해커톤 범위에서 쓰지 않습니다. 완성형 세팅은 [개발 가이드 §2](docs/DEVELOPMENT_GUIDE.md)를 보세요.
 
 ---
 
@@ -165,6 +164,34 @@ realwage/
 │  ├─ DEVELOPMENT_GUIDE.md
 │  └─ wireframe.html
 └─ tests/
+```
+
+### 현재 레포에 실제로 들어 있는 구조 (해커톤 버전)
+
+```
+realwage/
+├─ src/
+│  ├─ types.ts                 # 공용 타입 ★
+│  ├─ app/
+│  │  ├─ page.tsx              # S-01 홈
+│  │  ├─ search/page.tsx       # S-02 검색 결과
+│  │  ├─ jobs/[id]/page.tsx    # S-03 공고 상세
+│  │  └─ api/jobs/route.ts     # 유일한 API — 검색 + 실질시급 계산
+│  ├─ components/
+│  │  ├─ JobCard.tsx
+│  │  ├─ RealWageBadge.tsx
+│  │  ├─ SortToggle.tsx        # 시급순 ↔ 실질시급순 ★
+│  │  └─ CalcBreakdown.tsx     # 계산 과정 분해
+│  ├─ lib/
+│  │  ├─ calc.ts               # ★ 실질시급 계산 (순수 함수)
+│  │  ├─ format.ts
+│  │  ├─ saramin.ts
+│  │  ├─ geocode.ts
+│  │  └─ odsay.ts
+│  └─ data/
+│     ├─ mockJobs.json         # 사람인 대체 목데이터 15건
+│     └─ ownerJobs.json        # 사장님 공고 5건
+└─ docs/
 ```
 
 ---

@@ -8,3 +8,5 @@ out/
 .DS_Store
 *.log
 npm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
