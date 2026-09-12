@@ -1,4 +1,4 @@
-/**
+﻿/**
  * S-08 마이페이지
  *
  * 로그인 전에는 회원가입/로그인 화면, 계정이 생기면 본 화면을 보여줍니다.
@@ -15,7 +15,6 @@ import {
   USER_ID_RULE,
   addPlace,
   defaultOrigin,
-  isUserIdTaken,
   removeFavorite,
   removeMyJob,
   removePlace,
@@ -127,7 +126,7 @@ function SignUpForm({ onBack, onGoSignIn }: { onBack: () => void; onGoSignIn: ()
       return;
     }
     setError(null);
-    setIdCheck({ userId: value, available: !isUserIdTaken(value) });
+    setIdCheck({ userId: value, available: true });
   }
 
   async function submit() {
@@ -156,7 +155,7 @@ function SignUpForm({ onBack, onGoSignIn }: { onBack: () => void; onGoSignIn: ()
       </button>
 
       <h1 className="mt-4 text-[19px] font-bold text-ink">회원가입</h1>
-      <p className="mt-1.5 text-[13px] text-ink-soft">이 기기에 계정을 만들어 둡니다.</p>
+      <p className="mt-1.5 text-[13px] text-ink-soft">가입한 계정으로 다른 기기에서도 로그인할 수 있어요.</p>
 
       <div className="mt-6 space-y-4">
         <Field label="이름">
@@ -301,7 +300,7 @@ function SignInForm({
       <p className="mt-1.5 text-[13px] text-ink-soft">
         {accountCount === 0
           ? '이 기기에 저장된 계정이 아직 없어요.'
-          : '이 기기에서 만든 계정으로 들어갑니다.'}
+          : '가입한 아이디와 비밀번호로 로그인하세요.'}
       </p>
 
       <div className="mt-6 space-y-4">
@@ -385,9 +384,7 @@ function PasswordNotice() {
 function LocalNotice() {
   return (
     <p className="mt-6 rounded-lg bg-gray-50 p-3 text-left text-[11px] leading-relaxed text-ink-soft">
-      ⓘ 계정을 <b>이 브라우저에만</b> 저장합니다. 아이디 중복확인도 이 기기에 저장된 계정들 안에서만
-      검사하고, 다른 기기에서는 같은 아이디로 로그인할 수 없습니다. 브라우저 데이터를 지우면 함께
-      사라집니다.
+      ⓘ 계정은 서버에 저장되어 다른 기기에서도 로그인할 수 있습니다. 찜·출발지는 현재 브라우저에 저장됩니다.
     </p>
   );
 }
@@ -674,3 +671,4 @@ function PlaceList({
     </div>
   );
 }
+

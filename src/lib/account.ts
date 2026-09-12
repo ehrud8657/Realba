@@ -140,6 +140,7 @@ export const EMPTY_STATE: AccountState = {
 /* ── 저장소 ──────────────────────────────────────────────── */
 
 let cache: Persisted | null = null;
+let serverProfile: Profile | null = null;
 /**
  * 화면에 넘겨줄 상태를 만들어 두고 재사용합니다.
  *
@@ -215,7 +216,7 @@ export function readAccount(): AccountState {
   if (viewCache) return viewCache;
 
   const p = load();
-  const account = p.accounts.find((a) => a.userId === p.sessionUserId) ?? null;
+  const account = serverProfile ?? p.accounts.find((a) => a.userId === p.sessionUserId) ?? null;
 
   viewCache = {
     profile: account
@@ -301,8 +302,8 @@ export function validatePassword(password: string): string | null {
  *    같은 아이디로 가입하는 것은 막지 못합니다.
  */
 export function isUserIdTaken(userId: string): boolean {
-  const v = userId.trim().toLowerCase();
-  return load().accounts.some((a) => a.userId.toLowerCase() === v);
+  // 중복확인은 회원가입 요청 시 서버가 원자적으로 검사합니다.
+  return false;
 }
 
 /* ── 회원가입 · 로그인 ───────────────────────────────────── */
@@ -315,16 +316,24 @@ export async function signUp(params: {
   password: string;
   role?: UserRole;
 }): Promise<AuthResult> {
+  try {
+    const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signup', ...params }) });
+    const result = await response.json();
+    if (!response.ok) return { ok: false, message: result.message ?? '회원가입에 실패했어요.' };
+    serverProfile = result.profile;
+    save({ ...load(), sessionUserId: serverProfile?.userId ?? params.userId });
+    return { ok: true };
+  } catch { return { ok: false, message: '서버 연결을 확인해 주세요.' }; }
   const name = params.name.trim();
   const userId = params.userId.trim();
 
   if (!name) return { ok: false, message: '이름을 입력해 주세요.' };
 
   const idError = validateUserId(userId);
-  if (idError) return { ok: false, message: idError };
+  if (idError) return { ok: false, message: idError! };
 
   const pwError = validatePassword(params.password);
-  if (pwError) return { ok: false, message: pwError };
+  if (pwError) return { ok: false, message: pwError! };
 
   // 중복확인 버튼을 눌렀더라도 제출 시점에 한 번 더 봅니다
   if (isUserIdTaken(userId)) return { ok: false, message: '이미 사용 중인 아이디예요.' };
@@ -366,6 +375,14 @@ export async function signIn(params: {
   password: string;
   remember?: boolean;
 }): Promise<AuthResult> {
+  try {
+    const response = await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signin', ...params }) });
+    const result = await response.json();
+    if (!response.ok) return { ok: false, message: result.message ?? '로그인에 실패했어요.' };
+    serverProfile = result.profile;
+    save({ ...load(), sessionUserId: serverProfile?.userId ?? params.userId, rememberedUserId: params.remember ? params.userId : null });
+    return { ok: true };
+  } catch { return { ok: false, message: '서버 연결을 확인해 주세요.' }; }
   const userId = params.userId.trim();
   const p = load();
   const account = p.accounts.find((a) => a.userId.toLowerCase() === userId.toLowerCase());
@@ -390,7 +407,9 @@ export async function signIn(params: {
 }
 
 /** 로그아웃 — 찜과 저장한 출발지는 계정에 그대로 남습니다 */
-export function signOut() {
+export async function signOut() {
+  try { await fetch('/api/auth', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'signout' }) }); } catch { /* local cleanup below */ }
+  serverProfile = null;
   const p = load();
   save({ ...p, sessionUserId: null });
 }
