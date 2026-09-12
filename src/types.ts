@@ -7,6 +7,14 @@
  */
 
 export type JobSource = 'SARAMIN' | 'OWNER';
+
+/**
+ * 하루 근무시간을 어디서 얻었는지.
+ *   OWNER 사장님이 직접 입력한 확정값
+ *   TEXT  공고 제목/본문에서 뽑아낸 추정값
+ *   USER  아무것도 못 구해서 검색창에 입력한 값을 쓴 경우
+ */
+export type HoursSource = 'OWNER' | 'TEXT' | 'USER';
 export type TransportMode = 'TRANSIT' | 'TAXI' | 'CAR';
 
 /** 좌표. 카카오 API는 x=lng, y=lat 이니 주의 */
@@ -30,6 +38,8 @@ export interface Job {
   dailyWorkHours: number;
   /** true면 화면에 '추정' 배지를 답니다. 사람인 공고는 근무시간을 주지 않아 대부분 true */
   hoursIsEstimated: boolean;
+  /** 근무시간의 출처. 없으면 hoursIsEstimated로 판단합니다 */
+  hoursSource?: HoursSource;
 
   /** 원본 공고 링크. 사장님 공고는 null */
   url: string | null;

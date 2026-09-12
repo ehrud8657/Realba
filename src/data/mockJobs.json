@@ -46,7 +46,7 @@
   {
     "id": "s3",
     "source": "SARAMIN",
-    "title": "편의점 야간 근무",
+    "title": "편의점 야간 근무 22:00~06:00",
     "companyName": "○○편의점 신촌점",
     "address": "서울 서대문구 창천동",
     "location": {
@@ -63,7 +63,8 @@
     },
     "employmentType": "아르바이트",
     "postedAt": "2026-09-09",
-    "deadline": "2026-09-25"
+    "deadline": "2026-09-25",
+    "hoursSource": "TEXT"
   },
   {
     "id": "s4",
@@ -90,7 +91,7 @@
   {
     "id": "s5",
     "source": "SARAMIN",
-    "title": "카페 홀 서빙",
+    "title": "카페 홀 서빙 09:00~14:00",
     "companyName": "커피○○ 홍대점",
     "address": "서울 마포구 서교동",
     "location": {
@@ -107,7 +108,8 @@
     },
     "employmentType": "아르바이트",
     "postedAt": "2026-09-07",
-    "deadline": "2026-10-01"
+    "deadline": "2026-10-01",
+    "hoursSource": "TEXT"
   },
   {
     "id": "s6",
@@ -266,7 +268,7 @@
   {
     "id": "s13",
     "source": "SARAMIN",
-    "title": "호텔 조식 서빙",
+    "title": "호텔 조식 서빙 06:00~10:00",
     "companyName": "☆호텔 명동",
     "address": "서울 중구 명동",
     "location": {
@@ -283,7 +285,8 @@
     },
     "employmentType": "아르바이트",
     "postedAt": "2026-09-11",
-    "deadline": "2026-10-04"
+    "deadline": "2026-10-04",
+    "hoursSource": "TEXT"
   },
   {
     "id": "s14",

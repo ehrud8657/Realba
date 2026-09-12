@@ -11,7 +11,7 @@ import { minutes, won } from '@/lib/format';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
 import RealWageBadge, { MinimumWageWarning } from './RealWageBadge';
 import SourceBadge from './SourceBadge';
-import EstimatedTag from './EstimatedTag';
+import EstimatedTag, { hoursSourceOf } from './EstimatedTag';
 
 interface Props {
   item: JobResult;
@@ -61,7 +61,7 @@ export default function JobCard({ item, rank, query }: Props) {
         <span>
           ⏱ {job.workTime ? `${job.workTime} ` : ''}
           {job.dailyWorkHours}시간
-          <EstimatedTag estimated={job.hoursIsEstimated} />
+          <EstimatedTag source={hoursSourceOf(job)} />
         </span>
       </div>
     </Link>

@@ -93,23 +93,33 @@ export async function GET(req: NextRequest) {
   const live = hasSaraminKey();
 
   const saraminJobs: SeedJob[] = live
-    ? ((await fetchSaraminJobs({ keyword: keyword || '아르바이트', defaultHours: hours })) as SeedJob[])
+    ? ((await fetchSaraminJobs({
+        keyword: keyword || '아르바이트',
+        defaultHours: hours,
+        // 상세 조회는 목록 밖 공고도 찾아야 해서 넉넉히 가져옵니다
+        count: id ? 50 : clamp(limit, 10, 50),
+      })) as SeedJob[])
     : MOCK_JOBS;
 
-  let jobs: SeedJob[] = [...OWNER_JOBS, ...saraminJobs];
-
-  // 키워드 필터 (목데이터일 때만. 사람인은 API가 이미 걸러서 줌)
-  if (keyword && !live) {
+  // 키워드 필터
+  // 사람인 공고는 API가 이미 걸러서 주지만, 사장님 공고는 우리가 걸러야 합니다.
+  // (예전에는 LIVE일 때 필터를 통째로 건너뛰어, "카페"로 검색해도 사장님 공고가 전부 나왔습니다)
+  const matchesKeyword = (j: SeedJob) => {
     const k = keyword.toLowerCase();
-    jobs = jobs.filter(
-      (j) =>
-        j.title.toLowerCase().includes(k) ||
-        j.companyName.toLowerCase().includes(k) ||
-        j.address.toLowerCase().includes(k),
+    return (
+      j.title.toLowerCase().includes(k) ||
+      j.companyName.toLowerCase().includes(k) ||
+      j.address.toLowerCase().includes(k)
     );
-  }
+  };
+
+  const ownerJobs = keyword ? OWNER_JOBS.filter(matchesKeyword) : OWNER_JOBS;
+  const externalJobs = keyword && !live ? saraminJobs.filter(matchesKeyword) : saraminJobs;
+
+  let jobs: SeedJob[] = [...ownerJobs, ...externalJobs];
 
   // 상세 화면은 ID로 한 건만 찾습니다. 목록 필터·상한을 적용하면 안 됩니다
+  // (LIVE에서는 위에서 count=50으로 넉넉히 받아 왔습니다)
   if (id) {
     jobs = jobs.filter((j) => j.id === id);
   } else {
@@ -117,8 +127,12 @@ export async function GET(req: NextRequest) {
     if (aboveMinimumWage) jobs = jobs.filter((j) => !isBelowMinimumWage(j.hourlyWage));
   }
 
-  // 사람인 공고는 근무시간을 모르므로 사용자가 지정한 값으로 덮어씁니다
-  jobs = jobs.map((j) => (j.hoursIsEstimated ? { ...j, dailyWorkHours: hours } : j));
+  // 근무시간을 모르는 공고만 사용자가 지정한 값으로 덮어씁니다.
+  // 사장님이 적은 확정값(OWNER)과 공고 문구에서 뽑아낸 값(TEXT)은 그대로 둡니다
+  jobs = jobs.map((j) => {
+    const source = j.hoursSource ?? (j.hoursIsEstimated ? 'USER' : 'OWNER');
+    return source === 'USER' ? { ...j, dailyWorkHours: hours, hoursSource: source } : { ...j, hoursSource: source };
+  });
 
   const total = jobs.length;
 
