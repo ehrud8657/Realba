@@ -18,7 +18,9 @@ const KAKAO_KEY = process.env.KAKAO_REST_API_KEY;
 const cache = new Map<string, LatLng | null>();
 
 export function hasGeocodeKey() {
-  return Boolean(KAKAO_KEY);
+  const configured = Boolean(KAKAO_KEY);
+  console.info('[Kakao] 키 설정 여부:', configured);
+  return configured;
 }
 
 /**
