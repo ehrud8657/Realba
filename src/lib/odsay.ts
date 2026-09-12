@@ -78,7 +78,7 @@ const url =
 }
 
     const info = data?.result?.path?.[0]?.info;
-    if (!info) return walkingFallback(o, d);
+    if (!info) return null;
 
     return {
       oneWayMinutes: Math.round(info.totalTime),
