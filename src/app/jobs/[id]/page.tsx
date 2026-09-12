@@ -38,7 +38,7 @@ function JobDetail() {
 
   useEffect(() => {
     const q = new URLSearchParams({ origin, keyword, hours: String(baseHours) });
-      fetch(`/api/jobs?${q}`, { signal: AbortSignal.timeout(15000) })
+      fetch(`/api/jobs?${q}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
       .then((r) => r.json())
       .then((json: JobsResponse) => {
         const found = json.items.find((x) => x.job.id === params.id);

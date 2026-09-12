@@ -42,7 +42,7 @@ function SearchResults() {
     setData(null);
     setError(null);
 
-    fetch(`/api/jobs?${query}&sort=${sort}`, { signal: AbortSignal.timeout(15000) })
+    fetch(`/api/jobs?${query}&sort=${sort}`, { cache: 'no-store', signal: AbortSignal.timeout(15000) })
       .then((r) => {
         if (!r.ok) throw new Error(`${r.status}`);
         return r.json();

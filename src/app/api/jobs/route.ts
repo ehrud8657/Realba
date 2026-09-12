@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     items,
   };
 
-  return NextResponse.json(body);
+  return NextResponse.json(body, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 /** 출발지 문자열 → 좌표. 카카오 키가 없으면 고정 목록에서 찾고, 그래도 없으면 신촌역 */
