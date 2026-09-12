@@ -29,7 +29,7 @@ import {
   DEFAULT_ORIGIN_LABEL,
   FALLBACK_ORIGINS,
   findFallbackOrigin,
-  geocode,
+  geocodeDetailed,
 } from '@/lib/geocode';
 import { isBelowMinimumWage } from '@/lib/minimumWage';
 import {
@@ -93,23 +93,33 @@ export async function GET(req: NextRequest) {
   const live = hasSaraminKey();
 
   const saraminJobs: SeedJob[] = live
-    ? ((await fetchSaraminJobs({ keyword: keyword || '아르바이트', defaultHours: hours })) as SeedJob[])
+    ? ((await fetchSaraminJobs({
+        keyword: keyword || '아르바이트',
+        defaultHours: hours,
+        // 상세 조회는 목록 밖 공고도 찾아야 해서 넉넉히 가져옵니다
+        count: id ? 50 : clamp(limit, 10, 50),
+      })) as SeedJob[])
     : MOCK_JOBS;
 
-  let jobs: SeedJob[] = [...OWNER_JOBS, ...saraminJobs];
-
-  // 키워드 필터 (목데이터일 때만. 사람인은 API가 이미 걸러서 줌)
-  if (keyword && !live) {
+  // 키워드 필터
+  // 사람인 공고는 API가 이미 걸러서 주지만, 사장님 공고는 우리가 걸러야 합니다.
+  // (예전에는 LIVE일 때 필터를 통째로 건너뛰어, "카페"로 검색해도 사장님 공고가 전부 나왔습니다)
+  const matchesKeyword = (j: SeedJob) => {
     const k = keyword.toLowerCase();
-    jobs = jobs.filter(
-      (j) =>
-        j.title.toLowerCase().includes(k) ||
-        j.companyName.toLowerCase().includes(k) ||
-        j.address.toLowerCase().includes(k),
+    return (
+      j.title.toLowerCase().includes(k) ||
+      j.companyName.toLowerCase().includes(k) ||
+      j.address.toLowerCase().includes(k)
     );
-  }
+  };
+
+  const ownerJobs = keyword ? OWNER_JOBS.filter(matchesKeyword) : OWNER_JOBS;
+  const externalJobs = keyword && !live ? saraminJobs.filter(matchesKeyword) : saraminJobs;
+
+  let jobs: SeedJob[] = [...ownerJobs, ...externalJobs];
 
   // 상세 화면은 ID로 한 건만 찾습니다. 목록 필터·상한을 적용하면 안 됩니다
+  // (LIVE에서는 위에서 count=50으로 넉넉히 받아 왔습니다)
   if (id) {
     jobs = jobs.filter((j) => j.id === id);
   } else {
@@ -117,8 +127,12 @@ export async function GET(req: NextRequest) {
     if (aboveMinimumWage) jobs = jobs.filter((j) => !isBelowMinimumWage(j.hourlyWage));
   }
 
-  // 사람인 공고는 근무시간을 모르므로 사용자가 지정한 값으로 덮어씁니다
-  jobs = jobs.map((j) => (j.hoursIsEstimated ? { ...j, dailyWorkHours: hours } : j));
+  // 근무시간을 모르는 공고만 사용자가 지정한 값으로 덮어씁니다.
+  // 사장님이 적은 확정값(OWNER)과 공고 문구에서 뽑아낸 값(TEXT)은 그대로 둡니다
+  jobs = jobs.map((j) => {
+    const source = j.hoursSource ?? (j.hoursIsEstimated ? 'USER' : 'OWNER');
+    return source === 'USER' ? { ...j, dailyWorkHours: hours, hoursSource: source } : { ...j, hoursSource: source };
+  });
 
   const total = jobs.length;
 
@@ -185,26 +199,24 @@ export async function GET(req: NextRequest) {
 async function resolveOrigin(
   query: string,
 ): Promise<{ location: LatLng; resolved: boolean; usedLabel?: string; outOfArea?: boolean }> {
-  // "안암"처럼 일부만 쳐도 고정 목록에서 찾습니다
-  const known = findFallbackOrigin(query);
-  if (known) {
+  // ① 고정 목록에 이름이 그대로 있으면 즉시 (네트워크 없음)
+  const exact = findFallbackOrigin(query, { loose: false });
+  if (exact) return { location: exact.location, resolved: true };
+
+  // ② 지도에서 찾기. 번지·상세주소가 붙으면 한 단계씩 줄여가며 재시도합니다
+  const found = await geocodeDetailed(query);
+  if (found) {
     return {
-      location: known.location,
+      location: found.location,
       resolved: true,
-      // 입력과 다른 이름으로 해석했으면 화면에 알려줍니다
-      ...(known.label === query ? {} : { usedLabel: known.label }),
+      ...(found.exact ? {} : { usedLabel: found.matchedQuery }),
+      outOfArea: haversineKm(found.location, SEOUL_CENTER) > SERVICE_RADIUS_KM,
     };
   }
 
-  // 카카오 키가 없어도 OSM으로 찾아봅니다 (→ lib/geocode.ts)
-  const found = await geocode(query);
-  if (found) {
-    return {
-      location: found,
-      resolved: true,
-      outOfArea: haversineKm(found, SEOUL_CENTER) > SERVICE_RADIUS_KM,
-    };
-  }
+  // ③ 지도가 못 찾았을 때만 부분 일치 ("안암" → 안암역)
+  const near = findFallbackOrigin(query);
+  if (near) return { location: near.location, resolved: true, usedLabel: near.label };
 
   return {
     location: FALLBACK_ORIGINS[DEFAULT_ORIGIN_LABEL],

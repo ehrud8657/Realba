@@ -88,6 +88,8 @@ async function toJob(raw: any, defaultHours: number): Promise<Job | null> {
     hourlyWage,
     dailyWorkHours: estimated ?? defaultHours,
     hoursIsEstimated: true, // 사람인 공고는 항상 추정입니다
+    // 제목에서 뽑아냈으면 그 값을 지킵니다. 못 뽑았을 때만 사용자가 입력한 값을 씁니다
+    hoursSource: estimated ? 'TEXT' : 'USER',
     url: raw?.url ?? null,
     employmentType: raw?.position?.['job-type']?.name ?? '아르바이트',
     postedAt: toDate(raw?.['posting-timestamp'] ?? raw?.['posting-date']),

@@ -12,7 +12,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import type { JobResult, JobsResponse, TransportMode } from '@/types';
 import { calcForJob } from '@/lib/calc';
@@ -22,7 +22,7 @@ import CalcBreakdown from '@/components/CalcBreakdown';
 import RouteSummary from '@/components/RouteSummary';
 import WorkHoursSlider from '@/components/WorkHoursSlider';
 import SourceBadge from '@/components/SourceBadge';
-import EstimatedTag from '@/components/EstimatedTag';
+import EstimatedTag, { hoursSourceOf } from '@/components/EstimatedTag';
 import EmptyState from '@/components/EmptyState';
 import { MinimumWageWarning } from '@/components/RealWageBadge';
 
@@ -68,6 +68,15 @@ function JobDetail() {
   const [subsidy, setSubsidy] = useState<string | null>(null); // null = 공고 값 그대로
   const [holidayPay, setHolidayPay] = useState(false);
   const [weeklyHours, setWeeklyHours] = useState(baseHours * 5);
+  /** 사용자가 주 근무시간을 직접 고쳤으면 더 이상 슬라이더를 따라가지 않습니다 */
+  const weeklyEdited = useRef(false);
+
+  // 하루 근무시간을 바꾸면 주 근무시간(= 하루 × 5일)도 같이 움직입니다.
+  // 안 그러면 하루 8시간인데 주 25시간이 남아 주 3.1일 근무로 계산됩니다
+  function changeHours(v: number) {
+    setHours(v);
+    if (!weeklyEdited.current) setWeeklyHours(v * 5);
+  }
 
   useEffect(() => {
     const q = new URLSearchParams({
@@ -191,7 +200,7 @@ function JobDetail() {
 
           <h2 className="mb-2 mt-6 text-sm font-bold">조건 바꿔보기</h2>
           <div className="space-y-4 rounded-xl border border-gray-200 p-4">
-            <WorkHoursSlider value={hours} onChange={setHours} />
+            <WorkHoursSlider value={hours} onChange={changeHours} />
 
             <div>
               <label
@@ -252,7 +261,10 @@ function JobDetail() {
                     max={60}
                     step={0.5}
                     value={weeklyHours}
-                    onChange={(e) => setWeeklyHours(Number(e.target.value) || 0)}
+                    onChange={(e) => {
+                      weeklyEdited.current = true;
+                      setWeeklyHours(Number(e.target.value) || 0);
+                    }}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm tnum"
                   />
                   <p className="mt-1 text-[11px] text-gray-400">
@@ -293,7 +305,7 @@ function JobDetail() {
 
         <div className="mt-2 border-t border-gray-100 pt-2 text-right">
           <span className="text-xs text-gray-600">근무시간 정확도</span>
-          <EstimatedTag estimated={job.hoursIsEstimated} expandable />
+          <EstimatedTag source={hoursSourceOf(job)} expandable />
         </div>
       </div>
 

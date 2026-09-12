@@ -92,7 +92,8 @@ export async function geocode(query: string): Promise<LatLng | null> {
   if (cache.has(key)) return cache.get(key)!;
 
   let result: LatLng | null = null;
-  if (KAKAO_KEY) {
+  // hasGeocodeKey()로 물어보면 키 설정 여부가 로그에 남습니다 (팀원이 넣은 진단용)
+  if (hasGeocodeKey()) {
     result = (await search('address', key)) ?? (await search('keyword', key));
   }
   if (!result) {
@@ -102,6 +103,68 @@ export async function geocode(query: string): Promise<LatLng | null> {
 
   cache.set(key, result);
   return result;
+}
+
+
+/* ── 주소 단계적 축약 ─────────────────────────────────────────────
+   "서울 관악구 봉천동 1610-1 3층"처럼 상세주소나 번지가 붙으면 지도 검색이 실패합니다.
+   그래서 실패할 때마다 한 단계씩 줄여가며 다시 찾습니다.
+     ① 원문 그대로
+     ② 상세주소 제거      (3층 / 101동 202호 / (2층) / B1)
+     ③ 번지 제거          → 동 단위
+     ④ 구 단위
+   ②~④에서 찾으면 "어디 기준으로 계산했는지"를 화면에 알려줍니다. */
+
+/** 찾기 위해 시도할 질의들을 넓은 순서로 만듭니다 */
+export function addressVariants(query: string): string[] {
+  const cleaned = query.replace(/\s+/g, ' ').trim();
+  const out: string[] = [cleaned];
+
+  const push = (v: string) => {
+    const t = v.replace(/\s+/g, ' ').trim();
+    if (t.length >= 2 && !out.includes(t)) out.push(t);
+  };
+
+  // 서울을 안 적었으면 서울 기준으로도 찾아봅니다
+  if (!/서울/.test(cleaned)) push(`서울 ${cleaned}`);
+
+  // ② 상세주소 제거
+  const noDetail = cleaned
+    .replace(/\(.*?\)/g, ' ')
+    .replace(/\s(지하\s*)?\d+\s*(층|호)(?=\s|$)/g, ' ')
+    .replace(/\s\d+\s*동(?=\s|$)/g, ' ') // 101동 (아파트 동). "서교동" 같은 법정동은 숫자가 앞에 없어 안 걸립니다
+    .replace(/\sB\d+(?=\s|$)/gi, ' ');
+  push(noDetail);
+
+  // ③ 번지 제거 → 동 단위
+  const noBunji = noDetail.replace(/\s\d+(-\d+)?\s*$/, '');
+  push(noBunji);
+
+  // ④ 구 단위
+  const gu = cleaned.match(/([가-힣]+구)/);
+  if (gu) push(`서울 ${gu[1]}`);
+
+  return out.slice(0, 5);
+}
+
+/** 어디를 기준으로 계산했는지까지 알려주는 지오코딩 */
+export interface GeocodeHit {
+  location: LatLng;
+  /** 실제로 찾아낸 질의. 원문과 다르면 화면에 알려줍니다 */
+  matchedQuery: string;
+  /** 원문 그대로 찾았는지 */
+  exact: boolean;
+}
+
+export async function geocodeDetailed(query: string): Promise<GeocodeHit | null> {
+  const variants = addressVariants(query);
+
+  for (let i = 0; i < variants.length; i++) {
+    const v = variants[i];
+    const location = await geocode(v);
+    if (location) return { location, matchedQuery: v, exact: i === 0 };
+  }
+  return null;
 }
 
 async function search(
@@ -224,14 +287,20 @@ export const FALLBACK_ORIGINS: Record<string, LatLng> = {
 };
 
 /**
- * 고정 출발지에서 찾기. "안암역"은 물론 "안암"처럼 일부만 쳐도 찾습니다.
- * 카카오 키가 없을 때 이 목록이 사실상 검색 가능한 출발지 전부입니다.
+ * 고정 출발지에서 찾기.
+ *
+ * loose=true면 "안암"처럼 일부만 쳐도 찾습니다. 다만 부분 일치는 과하게 걸립니다 —
+ * "서울역센트럴자이"(아파트)가 "서울역"으로 잡히는 식입니다. 그래서 호출하는 쪽에서
+ * 완전 일치 → 지도 검색 → 부분 일치 순으로 씁니다 (→ api/jobs/route.ts resolveOrigin)
  */
-export function findFallbackOrigin(query: string): { label: string; location: LatLng } | null {
+export function findFallbackOrigin(
+  query: string,
+  { loose = true }: { loose?: boolean } = {},
+): { label: string; location: LatLng } | null {
   const q = query.trim();
   if (!q) return null;
   if (FALLBACK_ORIGINS[q]) return { label: q, location: FALLBACK_ORIGINS[q] };
-  if (q.length < 2) return null;
+  if (!loose || q.length < 2) return null;
 
   const hit = Object.keys(FALLBACK_ORIGINS).find((name) => name.includes(q) || q.includes(name));
   return hit ? { label: hit, location: FALLBACK_ORIGINS[hit] } : null;
@@ -266,10 +335,13 @@ export async function suggestPlaces(query: string, limit = 5): Promise<PlaceSugg
 
   const remote = KAKAO_KEY ? await searchMany(q, limit) : await osmSearch(q, limit);
 
+  // 카카오가 붙어 있으면 실제 장소를 위에 올립니다 (고정 목록은 키 없을 때의 보조 수단)
+  const [first, second] = KAKAO_KEY ? [remote, known] : [known, remote];
+
   // 같은 이름이 두 번 나오지 않게 합칩니다
-  const seen = new Set(known.map((p) => p.label));
-  const merged = [...known];
-  for (const p of remote) {
+  const seen = new Set<string>();
+  const merged: PlaceSuggestion[] = [];
+  for (const p of [...first, ...second]) {
     if (seen.has(p.label)) continue;
     seen.add(p.label);
     merged.push(p);

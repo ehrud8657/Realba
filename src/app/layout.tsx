@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   themeColor: '#1B64DA', // 폰 상단 상태바 색
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1, // 실수로 확대되는 것 방지 (앱처럼 느껴지게)
+  // maximumScale은 두지 않습니다 — 확대를 막으면 숫자를 키워 봐야 하는 사용자가 막힙니다
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
